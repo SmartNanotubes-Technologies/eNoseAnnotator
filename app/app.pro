@@ -60,8 +60,8 @@ SOURCES += \
     classes/usbdatasource.cpp \
     classes/curvefitworker.cpp \
     lib/comboboxitemdelegate.cpp \
-    lib/dlib/dlib/all/source.cpp \
     lib/spoiler.cpp \
+    lib/dlib/dlib/all/source.cpp \
     main.cpp \
     widgets/acirclewidget.cpp \
     widgets/addattributedialog.cpp \

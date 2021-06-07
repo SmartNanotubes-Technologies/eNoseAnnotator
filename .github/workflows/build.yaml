@@ -1,0 +1,176 @@
+name: windows-build
+on: [push]
+jobs:
+  build-app:
+    runs-on: windows-2019
+    steps:
+      - name: set tag
+        if: startsWith(github.ref, 'refs/tags/v')
+        env: 
+          TAG: 'true'
+        run: echo ${Tag}
+        shell: bash
+        
+       
+      - uses: actions/checkout@v2
+        with:
+          submodules: recursive
+        
+      - name: Cache Qt
+        id: cache-qt
+        uses: actions/cache@v2
+        with:
+          path: Qt
+          key: ${{ runner.os }}-QtCache_v2
+          
+      - name: Cache Qwt
+        uses: actions/cache@v2
+        id: cache-qwt
+        with:
+          path: C:/Qwt-6.1.5
+          key: ${{ runner.os }}-Qwt-Cache
+        
+      - name: Install Qt
+        uses: jurplel/install-qt-action@v2
+        with:
+          version: '5.13.2'
+          host: 'windows'
+          target: 'desktop'
+          arch: 'win64_msvc2017_64'
+          dir: '${{ github.workspace }}/'
+          install-deps: 'true'
+          modules: 'qtserialport qtsvg qtopengl'
+          setup-python: 'true'
+          tools: 'tools_ifw,4.0,qt.tools.ifw.40 tools_qtcreator,4.13.2-0,qt.tools.qtcreator'
+          # set-env: 'false'
+          tools-only: 'false'
+          aqtversion: '==1.1.3'
+          py7zrversion: '==0.14.0'
+          extra: '--external 7z'
+          cached: ${{ steps.cache-qt.outputs.cache-hit }}
+          
+      #                     #
+      #     prepare build   #
+      #                     #
+      - name: setup build env
+        run: echo "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\\" >> $GITHUB_PATH
+        shell: bash
+
+      - name: get libtorch
+        run: |
+             $client = new-object System.Net.WebClient
+             $client.DownloadFile("https://download.pytorch.org/libtorch/cpu/libtorch-win-shared-with-deps-1.6.0%2Bcpu.zip","libtorch.zip")
+      - name: extract libtorch
+        run: |
+          7z t libtorch.zip
+          7z x libtorch.zip -oapp/lib/
+        shell: cmd
+
+      # install qwt
+      - name: Install Qwt
+        if: steps.cache-qwt.outputs.cache-hit != 'true'
+        run: .\scripts\install_qwt.ps1
+
+      #                     #
+      #     build app       #
+      #                     #
+      - name: build app
+        run: .\scripts\build.ps1
+
+      #                             #
+      #     create executable       #
+      #                             #
+      - name: create executable
+        run: |
+          cd app
+          vcvars64.bat
+          windeployqt --compiler-runtime release/eNoseAnnotator.exe
+        shell: cmd
+      
+      - name: remove unnecessary files
+        run: |
+          cd app
+          rm release/*.obj
+          rm release/*.cpp
+          rm release/*.h
+          dir release
+        shell: cmd
+
+      - name: create directories to be deployed
+        run: |
+         echo ${GITHUB_REF##*/}
+         echo ${TAG}
+         PREFIX=${GITHUB_REF##*/}
+         if [[ -z "${TAG}" ]]
+         then
+           SUFFIX="-continuous"
+         fi
+         DEPLOY_DIR="eNoseAnnotator-${PREFIX}${SUFFIX}-Windows"
+         echo "DEPLOY_NAME=${PREFIX}${SUFFIX}" >> ${GITHUB_ENV}
+         echo "DEPLOY_DIR=${DEPLOY_DIR}" >> ${GITHUB_ENV}
+         
+         mkdir -p "${DEPLOY_DIR}/${DEPLOY_DIR}/data/" "${DEPLOY_DIR}/${DEPLOY_DIR}/export/" "${DEPLOY_DIR}/${DEPLOY_DIR}/share/presets/" "${DEPLOY_DIR}/${DEPLOY_DIR}/classifiers/" "${DEPLOY_DIR}/${DEPLOY_DIR}/bin/"
+         cp -r usr/share/presets "${DEPLOY_DIR}/${DEPLOY_DIR}/share/"
+         cp app/lib/libtorch/lib/*.dll app/release
+         cp C:/Qwt-6.1.5/lib/*.dll app/release
+         cp "${Qt5_Dir}\bin\Qt5OpenGL.dll" app/release
+         cp -r app/release/* "${DEPLOY_DIR}/${DEPLOY_DIR}/bin/"
+        shell: bash
+        
+      #                             #
+      #     generate symbol file    #
+      #                             #
+      - name: setup environment
+        run: |
+          cd app
+          mv "release\eNoseAnnotator.exe" "app.exe"
+          crashHandlerPath="D:\a/eNoseAnnotator/eNoseAnnotator/app/lib/QCrashHandler"
+          
+          echo "SYMBOL_DIR=symbols_${GITHUB_SHA}_win" >> ${GITHUB_ENV}
+          echo "SYMBOL_FILE=app.sym" >> ${GITHUB_ENV}
+          echo "${crashHandlerPath}/deps/breakpad.git/src/tools/windows/binaries" >> ${GITHUB_PATH}
+          echo "${crashHandlerPath}/deps/breakpad.git/src/processor" >> ${GITHUB_PATH}
+          echo "-"
+        shell: bash
+                  
+      - name: dump symbols
+        run: |          
+          cp "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\DIA SDK\bin\msdia140.dll" "C:\Program Files\Common Files\Microsoft Shared\VC\msdia140.dll"
+          C:\Windows\system32\regsvr32 /s "C:\Program Files\Common Files\Microsoft Shared\VC\msdia140.dll"
+
+          mkdir "%SYMBOL_DIR%"
+          dump_syms "app/release/app.pdb" > "%SYMBOL_DIR%/%SYMBOL_FILE%"
+          cp "app/release/app.pdb" "%SYMBOL_DIR%/"
+        shell: cmd
+          
+      #                         #
+      #         deploy          #
+      #                         #
+      - name: Archive deployment directories
+        run: |
+          $Env:DEPLOY_ZIP = "$($env:DEPLOY_DIR).zip";
+          $Env:SYMBOL_ZIP = "$($env:SYMBOL_DIR).zip";
+          echo "SYMBOL_ZIP=$Env:SYMBOL_ZIP" >> $Env:GITHUB_ENV
+          echo "DEPLOY_ZIP=$Env:DEPLOY_ZIP" >> $Env:GITHUB_ENV
+          Compress-Archive -Path $env:DEPLOY_DIR\* -DestinationPath $Env:DEPLOY_ZIP;
+          Compress-Archive -Path $env:SYMBOL_DIR\* -DestinationPath $Env:SYMBOL_ZIP;
+          
+      - name: Create Release
+        uses: ncipollo/release-action@v1.8.6
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          artifacts: "${{ env.DEPLOY_ZIP }}, ${{ env.SYMBOL_ZIP }}"
+          draft: 'true'
+          allowUpdates: 'true'
+          token: ${{ secrets.GITHUB_TOKEN }}
+        
+      - name: Create Release
+        uses: ncipollo/release-action@v1.8.6
+        if: startsWith(github.ref, 'refs/heads/')
+        with:
+          tag: "${{ env.DEPLOY_NAME }}"
+          artifacts: "${{ env.DEPLOY_ZIP }}, ${{ env.SYMBOL_ZIP }}"
+          prerelease: 'true'
+          allowUpdates: 'true'
+          token: ${{ secrets.GITHUB_TOKEN }}
+
