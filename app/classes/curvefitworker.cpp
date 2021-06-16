@@ -311,14 +311,14 @@ void CurveFitWorker::fitChannel(size_t channel)
             double solve_error = fitter->residual_sum_of_sqares(channelData);
 
             fitter_lm->solve_lm(channelData, nIterations, limitFactor);
-            double solve_lm_error = fitter->residual_sum_of_sqares(channelData);
+            double solve_lm_error = fitter_lm->residual_sum_of_sqares(channelData);
 
             // validate parameters:
             // invalid results should be ignored in the fitting process,
             // however edge cases may produce invalid parameters
             double lastVal = channelData.back().second;
             bool solve_valid = fitter->parameters_valid(limitFactor * lastVal);
-            bool solve_lm_valid = fitter->parameters_valid(limitFactor * lastVal);
+            bool solve_lm_valid = fitter_lm->parameters_valid(limitFactor * lastVal);
 
             std::shared_ptr<LeastSquaresFitter> bestFitter;
             double bestError = qInf();

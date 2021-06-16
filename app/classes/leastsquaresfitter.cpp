@@ -29,7 +29,7 @@ void LeastSquaresFitter::solve(const std::vector<std::pair<double, double> > &sa
     double y_max = 0.;
     for (auto pair : samples)
     {
-        if (pair.second > y_max)
+        if (qAbs(pair.second) > qAbs(y_max))
             y_max = pair.second;
     }
 
@@ -281,16 +281,15 @@ bool ADG_superpos_Fitter::parameters_valid(const parameter_vector &param_vector,
     bool not_zero = !(qFuzzyIsNull(alpha_1) && qFuzzyIsNull(beta_1) && qFuzzyIsNull(t0_1) && qFuzzyIsNull(alpha_2) && qFuzzyIsNull(beta_2) && qFuzzyIsNull(t0_2));
 
     // alpha: plateau < y_limit
-    bool alpha_valid1 = qAbs(alpha_1 + alpha_2) < y_limit;
-    bool alpha_valid2 = (alpha_1 > 0) == (alpha_2 > 0);
+    bool alpha_valid1 = qAbs(alpha_1 + alpha_2) < qAbs(y_limit);
+    bool alpha_valid2 = (alpha_1 + alpha_2 > 0) == (y_limit > 0);
+    bool alpha_valid3 = (alpha_1 > 0) == (alpha_2 > 0);
 
     // beta: always positive
     bool beta_valid = beta_1 >= 0. && beta_2 >= 0.;
 
-    return  not_zero && alpha_valid1 && beta_valid;
+    return  not_zero && alpha_valid1 && alpha_valid2 && alpha_valid3 && beta_valid;
 }
-
-
 
 parameter_vector ADG_superpos_Fitter::getRandomParameterVector(const std::vector<std::pair<double, double> > &samples) const
 {
@@ -307,12 +306,12 @@ parameter_vector ADG_superpos_Fitter::getRandomParameterVector(const std::vector
             t_first = pair.first;
         if (pair.first > t_last)
             t_last = pair.first;
-        if (pair.second > y_max)
+        if (qAbs(pair.second) > qAbs(y_max))
             y_max = pair.second;
     }
 
     // determine parameters
-    // alpha is random in range (0; 2*y_max)
+    // alpha is random in range (0; y_max)
     parameters(0) = parameters(0) * y_max;
     parameters(3) = parameters(3) * y_max;
 
