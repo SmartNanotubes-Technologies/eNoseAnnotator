@@ -4,14 +4,6 @@ jobs:
   build-app:
     runs-on: windows-2019
     steps:
-      - name: set tag
-        if: startsWith(github.ref, 'refs/tags/v')
-        env: 
-          TAG: 'true'
-        run: echo ${Tag}
-        shell: bash
-        
-       
       - uses: actions/checkout@v2
         with:
           submodules: recursive
@@ -83,10 +75,9 @@ jobs:
       - name: create executable
         run: |
           cd app
-          vcvars64.bat
-          windeployqt --compiler-runtime release/eNoseAnnotator.exe
+          windeployqt --verbose 2 --compiler-runtime release/eNoseAnnotator.exe
         shell: cmd
-      
+                
       - name: remove unnecessary files
         run: |
           cd app
@@ -98,10 +89,8 @@ jobs:
 
       - name: create directories to be deployed
         run: |
-         echo ${GITHUB_REF##*/}
-         echo ${TAG}
          PREFIX=${GITHUB_REF##*/}
-         if [[ -z "${TAG}" ]]
+         if [[ ${PREFIX} == "v*" ]]
          then
            SUFFIX="-continuous"
          fi
@@ -126,7 +115,7 @@ jobs:
           mv "release\eNoseAnnotator.exe" "app.exe"
           crashHandlerPath="D:\a/eNoseAnnotator/eNoseAnnotator/app/lib/QCrashHandler"
           
-          echo "SYMBOL_DIR=symbols_${GITHUB_SHA}_win" >> ${GITHUB_ENV}
+          echo "SYMBOL_DIR=${DEPLOY_DIR}/${DEPLOY_DIR}/symbols_${GITHUB_SHA}_win" >> ${GITHUB_ENV}
           echo "SYMBOL_FILE=app.sym" >> ${GITHUB_ENV}
           echo "${crashHandlerPath}/deps/breakpad.git/src/tools/windows/binaries" >> ${GITHUB_PATH}
           echo "${crashHandlerPath}/deps/breakpad.git/src/processor" >> ${GITHUB_PATH}
@@ -149,28 +138,35 @@ jobs:
       - name: Archive deployment directories
         run: |
           $Env:DEPLOY_ZIP = "$($env:DEPLOY_DIR).zip";
-          $Env:SYMBOL_ZIP = "$($env:SYMBOL_DIR).zip";
-          echo "SYMBOL_ZIP=$Env:SYMBOL_ZIP" >> $Env:GITHUB_ENV
-          echo "DEPLOY_ZIP=$Env:DEPLOY_ZIP" >> $Env:GITHUB_ENV
+          echo "DEPLOY_ZIP=$Env:DEPLOY_ZIP" >> $Env:GITHUB_ENV;
           Compress-Archive -Path $env:DEPLOY_DIR\* -DestinationPath $Env:DEPLOY_ZIP;
-          Compress-Archive -Path $env:SYMBOL_DIR\* -DestinationPath $Env:SYMBOL_ZIP;
           
-      - name: Create Release
-        uses: ncipollo/release-action@v1.8.6
+      - name: update tag to current commit
+        run: |
+          if git rev-parse "$TAG" >/dev/null 2>&1; then
+            git tag -f ${DEPLOY_NAME}
+            git push -f origin ${DEPLOY_NAME}
+          fi
+        shell: bash    
+          
+      - name: Create Release        
         if: startsWith(github.ref, 'refs/tags/')
+        uses: ncipollo/release-action@v1.8.6
         with:
-          artifacts: "${{ env.DEPLOY_ZIP }}, ${{ env.SYMBOL_ZIP }}"
+          artifacts: "${{ env.DEPLOY_ZIP }}"
           draft: 'true'
           allowUpdates: 'true'
+          artifactErrorsFailBuild: 'true'
           token: ${{ secrets.GITHUB_TOKEN }}
         
       - name: Create Release
-        uses: ncipollo/release-action@v1.8.6
         if: startsWith(github.ref, 'refs/heads/')
+        uses: ncipollo/release-action@v1.8.6
         with:
           tag: "${{ env.DEPLOY_NAME }}"
-          artifacts: "${{ env.DEPLOY_ZIP }}, ${{ env.SYMBOL_ZIP }}"
+          artifacts: "${{ env.DEPLOY_ZIP }}"
           prerelease: 'true'
           allowUpdates: 'true'
+          artifactErrorsFailBuild: 'true'
           token: ${{ secrets.GITHUB_TOKEN }}
 
