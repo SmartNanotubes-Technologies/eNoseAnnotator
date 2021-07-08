@@ -157,6 +157,7 @@ private:
     FuncLineGraphWidget* funcLineGraph;
     AbsoluteLineGraphWidget* absLineGraph;
     RelativeLineGraphWidget* relLineGraph;
+    SensorParameterGraphWidget* parameterLineGraph;
     RelVecBarGraphWidget* vectorBarGraph;
     FuncBarGraphWidget* funcBarGraph;
     InfoWidget* measInfoWidget;

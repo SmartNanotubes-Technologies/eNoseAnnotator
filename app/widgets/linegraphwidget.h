@@ -166,7 +166,7 @@ public slots:
 protected slots:
     void setMouseCoordinates(const QPointF &coords);
 
-    virtual void setupLegend(const Functionalisation &functionalisation, const std::vector<bool> &sensorFailures);
+    virtual void setupLegend(const Functionalisation &functionalisation, const std::vector<bool> &sensorFailures, QStringList extraLabels=QStringList());
 
 //    void updateZoomBase(QPointF point);
 
@@ -200,7 +200,7 @@ protected:
 
     virtual QString getGraphName(size_t i, const Functionalisation &functionalisation);
 
-    virtual QColor getGraphColor(uint i, const Functionalisation &functionalisation);
+    virtual QColor getGraphColor(uint i, const Functionalisation &functionalisation, int n=0);
 
     void addPoint(QwtPlotCurve* curve, QPointF point);
 
@@ -257,11 +257,27 @@ public slots:
 
     void setFunctionalisation(const Functionalisation &functionalisation, const std::vector<bool> &sensorFailures) override;
 
-    void setupLegend(const Functionalisation &functionalisation, const std::vector<bool> &sensorFailures) override;
+    void setupLegend(const Functionalisation &functionalisation, const std::vector<bool> &sensorFailures, QStringList extraLabels = QStringList()) override;
 
 protected:
     QString getGraphName(size_t i, const Functionalisation &functionalisation) override;
-    QColor getGraphColor(uint i, const Functionalisation &functionalisation) override;
+    QColor getGraphColor(uint i, const Functionalisation &functionalisation, int n=0) override;
+};
+
+class SensorParameterGraphWidget : public LineGraphWidget
+{
+    Q_OBJECT
+
+public:
+    explicit SensorParameterGraphWidget(QWidget *parent = nullptr);
+
+    void addVector(uint timestamp, MVector vector, const Functionalisation &functionalisation, const std::vector<bool> &sensorFailures) override;
+    virtual QRectF boundingRect() const override;
+
+protected:
+    virtual void initPlot(uint timestamp, MVector vector, const Functionalisation &functionalisation, const std::vector<bool> &sensorFailures) override;
+    QColor getGraphColor(uint i, const Functionalisation &functionalisation, int n) override;
+    void setupLegend(const Functionalisation &functionalisation, const std::vector<bool> &sensorFailures, QStringList extraLabels) override;
 };
 
 #endif // LINEGRAPHWIDGET_H

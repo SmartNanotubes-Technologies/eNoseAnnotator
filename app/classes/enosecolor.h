@@ -38,6 +38,7 @@ public:
     QColor getSensorColor(int i);
     QColor getFuncColor(int func);
     QColor getClassColor(int i, int n);
+    QColor getIColor(int i, int n);
 
     Functionalisation functionalisation;
     std::vector<bool> sensorFailures;

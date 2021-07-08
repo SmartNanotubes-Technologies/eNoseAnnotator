@@ -73,6 +73,7 @@ void MainWindow::clearGraphs()
     funcLineGraph->clearGraph();
     relLineGraph->clearGraph();
     absLineGraph->clearGraph();
+    parameterLineGraph->clearGraph();
 }
 
 void MainWindow::addVector(uint timestamp, AbsoluteMVector absoluteVector, const Functionalisation &functionalisation, const std::vector<bool> &sensorFailures)
@@ -84,6 +85,8 @@ void MainWindow::addVector(uint timestamp, AbsoluteMVector absoluteVector, const
 
     RelativeMVector funcVector = relativeVector.getFuncVector(functionalisation, sensorFailures);
     funcLineGraph->addVector(timestamp, funcVector, functionalisation, sensorFailures);
+
+    parameterLineGraph->addVector(timestamp, absoluteVector, functionalisation, sensorFailures);
 }
 
 void MainWindow::setData(const QMap<uint, AbsoluteMVector> &data, const Functionalisation &functionalisation, const std::vector<bool> &sensorFailures)
@@ -91,10 +94,12 @@ void MainWindow::setData(const QMap<uint, AbsoluteMVector> &data, const Function
     absLineGraph->clearGraph();
     relLineGraph->clearGraph();
     funcLineGraph->clearGraph();
+    parameterLineGraph->clearGraph();
 
     absLineGraph->setReplotStatus(false);
     relLineGraph->setReplotStatus(false);
     funcLineGraph->setReplotStatus(false);
+    parameterLineGraph->setReplotStatus(false);
 
     for (uint timestamp : data.keys())
     {
@@ -103,15 +108,18 @@ void MainWindow::setData(const QMap<uint, AbsoluteMVector> &data, const Function
         RelativeMVector relVector = data[timestamp].getRelativeVector();
         relLineGraph->addVector(timestamp, relVector, functionalisation, sensorFailures);
         funcLineGraph->addVector(timestamp, relVector.getFuncVector(functionalisation, sensorFailures), functionalisation, sensorFailures);
+        parameterLineGraph->addVector(timestamp, data[timestamp], functionalisation, sensorFailures);
     }
 
     absLineGraph->setReplotStatus(true);
     relLineGraph->setReplotStatus(true);
     funcLineGraph->setReplotStatus(true);
+    parameterLineGraph->setReplotStatus(true);
 
     absLineGraph->zoomToData();
     relLineGraph->zoomToData();
     funcLineGraph->zoomToData();
+    parameterLineGraph->zoomToData();
 }
 
 void MainWindow::setStatus(DataSource::Status newStatus)
@@ -232,6 +240,7 @@ void MainWindow::on_actionStart_triggered()
     absLineGraph->setMeasRunning(true);
     relLineGraph->setMeasRunning(true);
     funcLineGraph->setMeasRunning(true);
+    parameterLineGraph->setMeasRunning(true);
 
     emit startRequested();
 }
@@ -241,6 +250,7 @@ void MainWindow::on_actionStop_triggered()
     absLineGraph->setMeasRunning(false);
     relLineGraph->setMeasRunning(false);
     funcLineGraph->setMeasRunning(false);
+    parameterLineGraph->setMeasRunning(false);
 
     emit stopRequested();
 }
@@ -527,6 +537,7 @@ void MainWindow::changeAnnotations( const QMap<uint, Annotation> annotations , b
     absLineGraph->setAnnotations(annotations, isUserAnnotation);
     relLineGraph->setAnnotations(annotations, isUserAnnotation);
     funcLineGraph->setAnnotations(annotations, isUserAnnotation);
+    parameterLineGraph->setAnnotations(annotations, isUserAnnotation);
 }
 
 void MainWindow::setSelectionVector ( const AbsoluteMVector &vector, const AbsoluteMVector &stdDevVector, const std::vector<bool> &sensorFailures, const Functionalisation &functionalisation )
@@ -585,7 +596,7 @@ void MainWindow::createDockWidgets()
     leftDocks << flgdock;
 
     // relative line graph
-    QDockWidget *rlgdock = new QDockWidget(tr("Relative Line Graph"), this);
+    QDockWidget *rlgdock = new QDockWidget(tr("Relative"), this);
     relLineGraph = new RelativeLineGraphWidget;
     rlgdock->setAllowedAreas(Qt::LeftDockWidgetArea);
     rlgdock->setWidget(relLineGraph);
@@ -594,13 +605,21 @@ void MainWindow::createDockWidgets()
 //    rlgdock->hide();
 
     // absolute line graph
-    QDockWidget *algdock = new QDockWidget(tr("Absolute Line Graph"), this);
+    QDockWidget *algdock = new QDockWidget(tr("Absolute"), this);
     absLineGraph = new AbsoluteLineGraphWidget;
     algdock->setAllowedAreas(Qt::LeftDockWidgetArea);
     algdock->setWidget(absLineGraph);
     addDockWidget(Qt::LeftDockWidgetArea, algdock);
     leftDocks << algdock;
 //    algdock->hide();
+
+    // parameter graph
+    QDockWidget *plgdock = new QDockWidget(tr("Parameters"), this);
+    parameterLineGraph = new SensorParameterGraphWidget;
+    plgdock->setAllowedAreas(Qt::LeftDockWidgetArea);
+    plgdock->setWidget(parameterLineGraph);
+    addDockWidget(Qt::LeftDockWidgetArea, plgdock);
+    leftDocks << plgdock;
 
 //    // vector bar graph
     QDockWidget *vbgdock = ui->dock2;
@@ -619,16 +638,26 @@ void MainWindow::createDockWidgets()
     addDockWidget(Qt::LeftDockWidgetArea, fbgdock);
     leftDocks << fbgdock;
 
+
+
     //                      //
     //  graph connections   //
     //                      //
     // sync x-range of line graphs
     connect(absLineGraph, &LineGraphWidget::axisIntvSet, relLineGraph, &LineGraphWidget::setAxisIntv);
     connect(absLineGraph, &LineGraphWidget::axisIntvSet, funcLineGraph, &LineGraphWidget::setAxisIntv);
+    connect(absLineGraph, &LineGraphWidget::axisIntvSet, parameterLineGraph, &LineGraphWidget::setAxisIntv);
     connect(relLineGraph, &LineGraphWidget::axisIntvSet, absLineGraph, &LineGraphWidget::setAxisIntv);
     connect(relLineGraph, &LineGraphWidget::axisIntvSet, funcLineGraph, &LineGraphWidget::setAxisIntv);
+    connect(relLineGraph, &LineGraphWidget::axisIntvSet, parameterLineGraph, &LineGraphWidget::setAxisIntv);
     connect(funcLineGraph, &LineGraphWidget::axisIntvSet, absLineGraph, &LineGraphWidget::setAxisIntv);
     connect(funcLineGraph, &LineGraphWidget::axisIntvSet, relLineGraph, &LineGraphWidget::setAxisIntv);
+    connect(funcLineGraph, &LineGraphWidget::axisIntvSet, parameterLineGraph, &LineGraphWidget::setAxisIntv);
+    connect(parameterLineGraph, &LineGraphWidget::axisIntvSet, relLineGraph, &LineGraphWidget::setAxisIntv);
+    connect(parameterLineGraph, &LineGraphWidget::axisIntvSet, funcLineGraph, &LineGraphWidget::setAxisIntv);
+    connect(parameterLineGraph, &LineGraphWidget::axisIntvSet, absLineGraph, &LineGraphWidget::setAxisIntv);
+
+
 
     // selection flow:
     connect(absLineGraph, &LineGraphWidget::selectionMade, this, &MainWindow::selectionMade);
@@ -643,17 +672,29 @@ void MainWindow::createDockWidgets()
     // sync selection between graphs
     connect(absLineGraph, SIGNAL(selectionMade(uint, uint)), relLineGraph, SLOT(makeSelection(uint, uint)));
     connect(absLineGraph, SIGNAL(selectionMade(uint, uint)), absLineGraph, SLOT(makeSelection(uint, uint)));
+    connect(absLineGraph, SIGNAL(selectionMade(uint, uint)), parameterLineGraph, SLOT(makeSelection(uint, uint)));
     connect(relLineGraph, SIGNAL(selectionMade(uint, uint)), absLineGraph, SLOT(makeSelection(uint, uint)));
     connect(relLineGraph, SIGNAL(selectionMade(uint, uint)), funcLineGraph, SLOT(makeSelection(uint, uint)));
+    connect(relLineGraph, SIGNAL(selectionMade(uint, uint)), parameterLineGraph, SLOT(makeSelection(uint, uint)));
     connect(funcLineGraph, SIGNAL(selectionMade(uint, uint)), absLineGraph, SLOT(makeSelection(uint, uint)));
     connect(funcLineGraph, SIGNAL(selectionMade(uint, uint)), relLineGraph, SLOT(makeSelection(uint, uint)));
+    connect(funcLineGraph, SIGNAL(selectionMade(uint, uint)), parameterLineGraph, SLOT(makeSelection(uint, uint)));
+    connect(parameterLineGraph, SIGNAL(selectionMade(uint, uint)), relLineGraph, SLOT(makeSelection(uint, uint)));
+    connect(parameterLineGraph, SIGNAL(selectionMade(uint, uint)), absLineGraph, SLOT(makeSelection(uint, uint)));
+    connect(parameterLineGraph, SIGNAL(selectionMade(uint, uint)), funcLineGraph, SLOT(makeSelection(uint, uint)));
 
     connect(absLineGraph, &LineGraphWidget::selectionCleared, relLineGraph, &LineGraphWidget::clearSelection);
     connect(absLineGraph, &LineGraphWidget::selectionCleared, funcLineGraph, &LineGraphWidget::clearSelection);
+    connect(absLineGraph, &LineGraphWidget::selectionCleared, parameterLineGraph, &LineGraphWidget::clearSelection);
     connect(relLineGraph, &LineGraphWidget::selectionCleared, absLineGraph, &LineGraphWidget::clearSelection);
     connect(relLineGraph, &LineGraphWidget::selectionCleared, funcLineGraph, &LineGraphWidget::clearSelection);
+    connect(relLineGraph, &LineGraphWidget::selectionCleared, parameterLineGraph, &LineGraphWidget::clearSelection);
     connect(funcLineGraph, &LineGraphWidget::selectionCleared, absLineGraph, &LineGraphWidget::clearSelection);
     connect(funcLineGraph, &LineGraphWidget::selectionCleared, relLineGraph, &LineGraphWidget::clearSelection);
+    connect(funcLineGraph, &LineGraphWidget::selectionCleared, parameterLineGraph, &LineGraphWidget::clearSelection);
+    connect(parameterLineGraph, &LineGraphWidget::selectionCleared, relLineGraph, &LineGraphWidget::clearSelection);
+    connect(parameterLineGraph, &LineGraphWidget::selectionCleared, funcLineGraph, &LineGraphWidget::clearSelection);
+    connect(parameterLineGraph, &LineGraphWidget::selectionCleared, absLineGraph, &LineGraphWidget::clearSelection);
 
     // save graphs
     connect(absLineGraph, &LineGraphWidget::saveRequested, this, [this](){
@@ -665,6 +706,10 @@ void MainWindow::createDockWidgets()
     connect(funcLineGraph, &LineGraphWidget::saveRequested, this, [this](){
         saveLineGraphImage(funcLineGraph);
     });
+    connect(parameterLineGraph, &LineGraphWidget::saveRequested, this, [this](){
+        saveLineGraphImage(funcLineGraph);
+    });
+
     connect(funcBarGraph, &AbstractBarGraphWidget::imageSaveRequested, this, [this](){
         saveBarGraphImage(funcBarGraph);
     });
@@ -678,7 +723,7 @@ void MainWindow::createDockWidgets()
         saveBarGraphSelectionVector(false);
     });
 
-    // error bars in bar garoh widgets
+    // error bars in bar graph widgets
     connect(funcBarGraph, &AbstractBarGraphWidget::errorBarsVisibleSet, vectorBarGraph, &AbstractBarGraphWidget::setErrorBarsVisible);
     connect(vectorBarGraph, &AbstractBarGraphWidget::errorBarsVisibleSet, funcBarGraph, &AbstractBarGraphWidget::setErrorBarsVisible);
 
@@ -686,13 +731,16 @@ void MainWindow::createDockWidgets()
     ui->menuView->addAction(flgdock->toggleViewAction());
     ui->menuView->addAction(fbgdock->toggleViewAction());
     ui->menuView->addAction(rlgdock->toggleViewAction());
+    ui->menuView->addAction(plgdock->toggleViewAction());
     ui->menuView->addAction(algdock->toggleViewAction());
     ui->menuView->addAction(vbgdock->toggleViewAction());
 
     // create tabs
     tabifyDockWidget(algdock, rlgdock);
     tabifyDockWidget(rlgdock, flgdock);
+    tabifyDockWidget(flgdock, plgdock);
     tabifyDockWidget(fbgdock, vbgdock);
+    flgdock->raise();
 
     // right widgets
     measInfoWidget = static_cast<InfoWidget*>(ui->infoWidget);
@@ -706,104 +754,10 @@ void MainWindow::createDockWidgets()
         dock->resize(dockWidth, dock->size().height());
 }
 
-//bool MainWindow::eventFilter(QObject *obj, QEvent *event)
-//{
-//    auto resizedDock = static_cast<QDockWidget*>(obj);
-
-//  if (event->type() == QEvent::Resize && leftDocks.contains(resizedDock))
-//  {
-//        auto resizeEvent = static_cast<QResizeEvent*>(event);
-//        int newWidth = window()->size().width() - resizeEvent->size().width() - 5;
-////        measInfoWidget->resize(newWidth, measInfoWidget->size().width());
-////        classifierWidget->resize(newWidth, classifierWidget->size().width());
-//  }
-//  return QWidget::eventFilter(obj, event);
-//}
-
 void MainWindow::on_actionLoadClassifier_triggered()
 {
     emit loadClassifierRequested();
 }
-
-//void MainWindow::updateFuncGraph()
-//{
-//    auto data = mData->getRelativeData();
-//    auto sensorFailures = mData->getSensorFailures();
-//    auto functionalisation = mData->getFunctionalisation();
-
-//    // get number of funcs
-//    auto funcMap = mData->getFuncMap(functionalisation, sensorFailures);
-//    int funcSize = funcMap.size();
-
-//    // no funcs set:
-//    // use normal graph
-//    if (funcMap.size() == 1)
-//    {
-//        if (funcLineGraph->getNChannels() != MVector::nChannels)
-//        {
-//            funcLineGraph->clearGraph();
-//            funcLineGraph->setNChannels(MVector::nChannels);
-//        }
-//        funcLineGraph->setData(data, functionalisation, sensorFailures);
-//    }
-//    // else: reset graph
-//    else
-//    {
-//        if (funcLineGraph->getNChannels() != funcSize)
-//        {
-//            // store xAxis range
-//            auto oldRange = funcLineGraph->getXRange();
-
-//            // reset funcLineGraph
-//            funcLineGraph->clearGraph();
-//            funcLineGraph->resetGraph(funcSize);
-
-//            // restore xAxis range
-//            funcLineGraph->setXRange(oldRange);
-//        }
-
-//        funcLineGraph->setData(mData->getFuncData(), functionalisation, sensorFailures);
-//    }
-
-//    // update func bar graph
-//    if (!mData->getSelectionMap().isEmpty())
-//    {
-//        MVector selectionVector = mData->getSelectionVector();
-
-//        funcBarGraph->setBars(selectionVector, sensorFailures, functionalisation);
-//    }
-
-//    // reset graph pens
-//    relLineGraph->resetColors();
-//    absLineGraph->resetColors();
-//    vectorBarGraph->resetColors();
-//}
-
-/*!
- * \brief MainWindow::connectFLGraph makes connections for funcLineGraph. has to be called each time funcLineGraph is recreated.
- */
-//void MainWindow::connectFLGraph()
-//{
-//    // xRange
-//    connect(funcLineGraph, SIGNAL(xRangeChanged(QCPRange)), relLineGraph, SLOT(setXRange(QCPRange)));
-//    connect(relLineGraph, SIGNAL(xRangeChanged(QCPRange)), funcLineGraph, SLOT(setXRange(QCPRange)));
-
-//    // selection
-//    connect(funcLineGraph, &LineGraphWidget::dataSelectionChanged, absLineGraph, &LineGraphWidget::setSelection);
-//    connect(funcLineGraph, &LineGraphWidget::selectionCleared, absLineGraph, &LineGraphWidget::clearSelection);
-//    connect(absLineGraph, &LineGraphWidget::dataSelectionChanged, funcLineGraph, &LineGraphWidget::setSelection);
-//    connect(absLineGraph, &LineGraphWidget::selectionCleared, funcLineGraph, &LineGraphWidget::clearSelection);
-//    connect(relLineGraph, &LineGraphWidget::dataSelectionChanged, funcLineGraph, &LineGraphWidget::setSelection);
-//    connect(relLineGraph, &LineGraphWidget::selectionCleared, funcLineGraph, &LineGraphWidget::clearSelection);
-
-//    connect(mData, &MeasurementData::lgClearSelection, funcLineGraph, &LineGraphWidget::clearSelection);
-
-//    // labels
-//    connect(mData, &MeasurementData::labelsUpdated, funcLineGraph, &LineGraphWidget::labelSelection); // draw selection and classes
-
-//    // replot status
-//    connect(mData, &MeasurementData::setReplotStatus, funcLineGraph, &LineGraphWidget::setReplotStatus);   // replotStatus
-//}
 
 void MainWindow::on_actionDelete_Annotation_triggered()
 {

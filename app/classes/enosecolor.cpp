@@ -51,6 +51,25 @@ QColor ENoseColor::getFuncColor(int func)
     return color;
 }
 
+QColor ENoseColor::getIColor(int i, int n)
+{
+    QColor color;
+
+    // pick color from list
+    if (n < smallColorList.size())
+        color = smallColorList[i];
+    else if (n < bigColorList.size())
+        color = bigColorList[i];
+    // too many funcs: pick equally spaced color
+    else
+    {
+        float hue = fmod(360/n * i, 360.0);
+        color.setHsv(hue, 250, 150);
+    }
+
+    return color;
+}
+
 /*!
  * \brief ENoseColor::getClassColor returns QColor for ith of n classes
  * \param i

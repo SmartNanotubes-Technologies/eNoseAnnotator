@@ -615,7 +615,7 @@ void LineGraphWidget::makeSelection(uint lower, uint upper)
     double minT = getT( lower );
     double maxT = getT( upper );
 
-    if (!qFuzzyCompare(minT, zoneIntv.minValue()) || !qFuzzyCompare(maxT, zoneIntv.maxValue()))
+    if (dataCurves.size()>0 && (!qFuzzyCompare(minT, zoneIntv.minValue()) || !qFuzzyCompare(maxT, zoneIntv.maxValue())))
     {
         if (selectPoints(minT, maxT))
         {
@@ -792,7 +792,7 @@ void LineGraphWidget::exportGraph(QString filePath)
     replot();
 }
 
-void LineGraphWidget::setupLegend(const Functionalisation &functionalisation, const std::vector<bool> &sensorFailures)
+void LineGraphWidget::setupLegend(const Functionalisation &functionalisation, const std::vector<bool> &sensorFailures, QStringList extraLabels)
 {
     auto funcMap = functionalisation.getFuncMap(sensorFailures);
     QMap<int, QwtPlotCurve*> legendCurves;
@@ -1045,7 +1045,7 @@ QString LineGraphWidget::getGraphName(size_t i, const Functionalisation &functio
     return "ch" + QString::number(i+1);
 }
 
-QColor LineGraphWidget::getGraphColor(uint i, const Functionalisation &functionalisation)
+QColor LineGraphWidget::getGraphColor(uint i, const Functionalisation &functionalisation, int n)
 {
     return ENoseColor::instance().getFuncColor(functionalisation[i]);
 }
@@ -1236,12 +1236,12 @@ QString FuncLineGraphWidget::getGraphName(size_t i, const Functionalisation &fun
     return "f" + QString::number(funcMap.keys()[i]);
 }
 
-QColor FuncLineGraphWidget::getGraphColor(uint i, const Functionalisation &functionalisation)
+QColor FuncLineGraphWidget::getGraphColor(uint i, const Functionalisation &functionalisation, int n)
 {
     return ENoseColor::instance().getFuncColor(functionalisation.getFuncMap().keys()[i]);
 }
 
-void FuncLineGraphWidget::setupLegend(const Functionalisation &functionalisation, const std::vector<bool> &sensorFailures)
+void FuncLineGraphWidget::setupLegend(const Functionalisation &functionalisation, const std::vector<bool> &sensorFailures, QStringList extraLabels)
 {
     auto funcMap = functionalisation.getFuncMap(sensorFailures);
 
@@ -1255,4 +1255,143 @@ void FuncLineGraphWidget::setupLegend(const Functionalisation &functionalisation
     }
 
     updateLegend();
+}
+
+SensorParameterGraphWidget::SensorParameterGraphWidget(QWidget* parent):
+    LineGraphWidget(parent)
+{
+//    setAxisTitle(QwtPlot::yLeft, QString(u8"\u0394") + "R / R0 [%]");
+}
+
+void SensorParameterGraphWidget::addVector(uint timestamp, MVector vector, const Functionalisation &functionalisation, const std::vector<bool> &sensorFailures)
+{
+    Q_ASSERT(dataCurves.size() == 0 || vector.sensorAttributes.size() == dataCurves.size());
+
+    // graph empty:
+    // init graph
+    if (dataCurves.size() == 0)
+        initPlot(timestamp, vector, functionalisation, sensorFailures);
+
+    auto datetime = QDateTime::fromTime_t(timestamp);
+    double t = getT(timestamp);
+
+    for (int i=0; i<dataCurves.size(); i++)
+    {
+        QwtPlotCurve* curve = dataCurves[i];
+        double value = vector.sensorAttributes.values()[i];
+        if (qIsInf(value) || value > DBL_MAX / 2)
+            value = DBL_MAX / 2;
+
+        QPointF point(t, value);
+
+        addPoint(curve, point);
+//        qDebug() << "Add parameter " << QString::number(value) << " to " << curve->title().text();
+    }
+
+    // set the zoomBase updated by addPoint
+    if (replotStatus)
+        setZoomBase();
+
+    // auto-move x axis
+    bool autoMoved = autoMoveXRange(t);
+
+    // add annotation labels of vector
+    if ( !vector.userAnnotation.isEmpty() )
+    {
+        setLabel(timestamp, vector.userAnnotation, true);
+        if (replotStatus)
+            adjustLabels(true);
+    }
+    if ( !vector.detectedAnnotation.isEmpty() )
+    {
+        setLabel(timestamp, vector.detectedAnnotation, false);
+        if (replotStatus)
+            adjustLabels(false);
+    }
+
+    if (replotStatus)
+    {
+        auto xIntv = axisInterval(QwtPlot::xBottom);
+        if (qFuzzyCompare( xIntv.width(), LGW_AUTO_MOVE_ZONE_SIZE*1000 ) && xIntv.contains(t) )
+            autoScale(false, true);
+        replot();
+    }
+}
+
+void SensorParameterGraphWidget::initPlot(uint timestamp, MVector vector, const Functionalisation &functionalisation, const std::vector<bool> &sensorFailures)
+{
+    Q_ASSERT(dataCurves.size() == 0);
+
+    // add graphs
+    for (size_t i=0; i<vector.sensorAttributes.size(); i++)
+    {
+        // add data graph
+        QString graphName = vector.sensorAttributes.keys()[i];
+        QColor graphColor = getGraphColor(i, functionalisation, vector.sensorAttributes.size());
+
+        QwtPlotCurve* curve = new QwtPlotCurve(graphName);
+
+        curve->setPen(graphColor);
+        curve->setStyle( QwtPlotCurve::CurveStyle::Lines );
+        curve->setSymbol( new QwtSymbol( QwtSymbol::Ellipse,
+                                           QBrush(graphColor), QPen(graphColor), QSize( 4, 4 ) ) );
+
+//        curve->setRenderHint( QwtPlotItem::RenderAntialiased, true );
+
+        curve->setData( new CurveData() );
+        curve->attach( this );
+
+        dataCurves << curve;
+
+        // add selection graph
+        QwtPlotCurve* selectionCurve = new QwtPlotCurve(graphName);
+
+        selectionCurve->setPen(graphColor);
+        selectionCurve->setStyle( QwtPlotCurve::CurveStyle::Lines );
+        selectionCurve->setSymbol( new QwtSymbol( QwtSymbol::Ellipse,
+                                           QBrush(graphColor), QPen(graphColor), QSize(6, 6)));
+
+
+        selectionCurve->setData(new CurveData());
+        selectionCurve->attach(this);
+
+        selectionCurves << selectionCurve;
+    }
+
+    QDateTime datetime = QDateTime::fromTime_t(timestamp);
+    setPrevXRange(datetime.addSecs(qRound(0.9 * LGW_AUTO_MOVE_ZONE_SIZE)), LGW_AUTO_MOVE_ZONE_SIZE);
+
+    setupLegend(functionalisation, sensorFailures, vector.sensorAttributes.keys());
+
+    if (replotStatus)
+        replot();
+}
+
+QColor SensorParameterGraphWidget::getGraphColor(uint i, const Functionalisation &functionalisation, int n)
+{
+    return ENoseColor::instance().getIColor(i, n);
+}
+
+void SensorParameterGraphWidget::setupLegend(const Functionalisation &functionalisation, const std::vector<bool> &sensorFailures, QStringList extraLabels)
+{
+    for (int i=0; i<dataCurves.size(); i++)
+    {
+        // hide selection curves from legend
+        selectionCurves[i]->setItemAttribute(QwtPlotItem::Legend, false);
+    }
+
+    updateLegend();
+}
+
+QRectF SensorParameterGraphWidget::boundingRect() const
+{
+    QRectF rect = LineGraphWidget::boundingRect();
+
+    // add relative margins
+    double deltaX = LGW_X_RELATIVE_MARGIN * rect.width();
+    double deltaY = LGW_Y_RELATIVE_MARGIN * rect.height();
+
+    rect.adjust(-deltaX, -0.3*deltaY, deltaX, 2*deltaY);
+
+    return rect;
 }
