@@ -203,16 +203,32 @@ void USBDataSource::processLine(const QByteArray &data)
 
 //        qDebug() << timestamp << ": Received new vector";
 
-        // line looks like: count=___,var1=____._,var2=____._,....
+        // line looks like: count=___,var1=____,var2=____,...,var64=____[,sensorAttribute=____]*
         QStringList dataList = line.split(',');
         QStringList valueList;
+        QMap<QString, double> parameterMap;
 
+        int count = 0;
         for (auto element : dataList)
-            valueList << element.split('=')[1];
+        {
+            if (element.startsWith("count"))
+            {
+                count = element.split('=')[1].toInt();
+            }
+            else if (element.startsWith("var"))
+            {
+                valueList << element.split('=')[1];
+            }
+            else
+            {
+                QStringList vals = element.split('=');
+                parameterMap[vals[0]] = vals[1].toDouble();
+            }
+        }
 
         // extract values
-        int count = valueList[0].toInt();
-        AbsoluteMVector vector = getVector(valueList);
+        AbsoluteMVector vector = getVector(valueList, parameterMap);
+
 
 //        qDebug() << vector.toString();
 
@@ -341,20 +357,22 @@ QString USBDataSource::identifier()
  * Set infinite for negative values
  * \return
  */
-AbsoluteMVector USBDataSource::getVector(QStringList vectorList)
+AbsoluteMVector USBDataSource::getVector(QStringList vectorList, QMap<QString, double> parameterMap)
 {
     AbsoluteMVector vector;
 
     for (int i=0; i<MVector::nChannels; i++)
     {
         // get values
-        vector[i] = vectorList[i+1].toDouble(); // ignore first entry in vectorList (count)
+        vector[i] = vectorList[i].toDouble(); // ignore first entry in vectorList (count)
 
 //        // values < 0 or value == 1.0:
 //        // huge resistances on sensor
 //        if (vector[i] < 0 || qFuzzyCompare(vector[i], 1.0))
 //            vector[i] = qInf();
     }
+
+    vector.sensorAttributes = parameterMap;
 
     return vector;
 }
