@@ -11,6 +11,7 @@
 #include "../widgets/generalsettings.h"
 #include "../widgets/setsensorfailuresdialog.h"
 #include "../widgets/curvefitwizard.h"
+#include "../widgets/flashwidget.h"
 
 #include "defaultSettings.h"
 #include "datasource.h"
@@ -109,6 +110,8 @@ Controler::Controler(QObject *parent) :
 
     // menu bar
     connect(w, &MainWindow::setConnectionRequested, this, &Controler::setSourceConnection);
+    connect(w, &MainWindow::flashFirmwareRequested, this, &Controler::openFlashDialog);
+
     connect(w, &MainWindow::startRequested, this, &Controler::startMeasurement);
     connect(w, &MainWindow::stopRequested, this, &Controler::stopMeasurement);
     connect(w, &MainWindow::pauseRequested, this, &Controler::pauseMeasurement);
@@ -745,6 +748,38 @@ void Controler::setSourceConnection()
     }
 
     dialog->deleteLater();
+}
+
+void Controler::openFlashDialog()
+{
+    Q_ASSERT((source == nullptr) || !source->measIsRunning() && "Cannot flash when measurement is running!");
+
+    QSettings settings(QCoreApplication::organizationName(), QCoreApplication::applicationName());
+    FlashDialog flashDialog(w);
+
+    // load python settings
+    QString pythonDir = settings.value(PYTHON_DIR_KEY, "").toString();
+    QString pythonCmd = settings.value(PYTHON_CMD_KEY, "").toString();
+
+    if (!pythonCmd.isEmpty())
+    {
+        flashDialog.setPython(pythonDir, pythonCmd);
+    } else
+    {
+        flashDialog.detectPython();
+    }
+
+    if (source != nullptr)
+        flashDialog.setIdentifier(source->identifier());
+
+    int accepted = flashDialog.exec();
+
+    // save python settings
+    if (accepted && flashDialog.getPythonOk() && flashDialog.getPipOk() && flashDialog.getEsptoolOk())
+    {
+        settings.setValue(PYTHON_DIR_KEY, flashDialog.getPythonDir());
+        settings.setValue(PYTHON_CMD_KEY, flashDialog.getPythonCmd());
+    }
 }
 
 void Controler::makeSourceConnections()

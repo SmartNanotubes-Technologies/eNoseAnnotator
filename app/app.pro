@@ -51,6 +51,7 @@ SOURCES += \
     classes/controler.cpp \
     classes/datasource.cpp \
     classes/enosecolor.cpp \
+    classes/espflasher.cpp \
     classes/fakedatasource.cpp \
     classes/functionalisation.cpp \
     classes/leastsquaresfitter.cpp \
@@ -72,6 +73,7 @@ SOURCES += \
     widgets/classselector.cpp \
     widgets/convertwizard.cpp \
     widgets/curvefitwizard.cpp \
+    widgets/flashwidget.cpp \
     widgets/functionalisationdialog.cpp \
     widgets/generalsettings.cpp \
     widgets/infowidget.cpp \
@@ -89,6 +91,7 @@ HEADERS += \
     classes/datasource.h \
     classes/defaultSettings.h \
     classes/enosecolor.h \
+    classes/espflasher.h \
     classes/fakedatasource.h \
     classes/functionalisation.h \
     classes/leastsquaresfitter.h \
@@ -110,6 +113,7 @@ HEADERS += \
     widgets/curvefitwizard.h \
     widgets/fixedplotmagnifier.h \
     widgets/fixedplotzoomer.h \
+    widgets/flashwidget.h \
     widgets/functionalisationdialog.h \
     widgets/generalsettings.h \
     widgets/infowidget.h \

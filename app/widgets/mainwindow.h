@@ -29,6 +29,8 @@ public:
 
 signals:
     void setConnectionRequested();
+    void flashFirmwareRequested();
+
     void startRequested();
     void stopRequested();
     void pauseRequested();
@@ -150,6 +152,8 @@ private slots:
     void saveBarGraphSelectionVector(bool saveFunc);
 
     void on_actionLabViewFile_triggered();
+
+    void on_actionFlash_Firmware_triggered();
 
 private:
     Ui::MainWindow *ui;

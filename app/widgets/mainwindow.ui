@@ -126,10 +126,11 @@
    </widget>
    <widget class="QMenu" name="menuConnection">
     <property name="title">
-     <string>Connection</string>
+     <string>Sensor</string>
     </property>
     <addaction name="actionSet_USB_Connection"/>
     <addaction name="actionReconnect"/>
+    <addaction name="actionFlash_Firmware"/>
    </widget>
    <widget class="QMenu" name="menuHelp">
     <property name="title">
@@ -259,7 +260,7 @@
      <activeon>:/icons/connected</activeon>:/icons/disconnected</iconset>
    </property>
    <property name="text">
-    <string>Set Connection...</string>
+    <string>Connect...</string>
    </property>
    <property name="toolTip">
     <string>Set connection to sensor</string>
@@ -446,6 +447,11 @@
   <action name="actionLabViewFile">
    <property name="text">
     <string>LabViewFile...</string>
+   </property>
+  </action>
+  <action name="actionFlash_Firmware">
+   <property name="text">
+    <string>Flash Firmware</string>
    </property>
   </action>
  </widget>

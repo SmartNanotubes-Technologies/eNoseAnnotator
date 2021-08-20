@@ -99,6 +99,8 @@ private slots:
 
     void setSourceConnection();
 
+    void openFlashDialog();
+
     void makeSourceConnections();
 
     void startMeasurement();

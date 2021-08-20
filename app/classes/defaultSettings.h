@@ -46,4 +46,8 @@
 #define FUNC_MAX_VALUE 100000
 #define FUNC_NC_VALUE 999
 
+// python
+#define PYTHON_DIR_KEY "settings/pythonDir"
+#define PYTHON_CMD_KEY "settings/pythonCmd"
+
 #endif // DEFAULTVALUES_H

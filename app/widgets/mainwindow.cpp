@@ -135,6 +135,7 @@ void MainWindow::setStatus(DataSource::Status newStatus)
         ui->actionSet_USB_Connection->setIcon(QIcon(":/icons/disconnected"));
         statusTextLabel->setText("Sensor Status: Not Connected");
         statusImageLabel->setPixmap(QPixmap(":/icons/disconnected"));
+        ui->actionFlash_Firmware->setEnabled(true);
         break;
     case DataSource::Status::CONNECTING:
         ui->actionStart->setIcon(QIcon(":/icons/start"));
@@ -146,6 +147,7 @@ void MainWindow::setStatus(DataSource::Status newStatus)
         ui->actionReconnect->setEnabled(false);
         statusTextLabel->setText("Sensor Status: Connecting...");
         statusImageLabel->setPixmap(QPixmap(":/icons/baseVector"));
+        ui->actionFlash_Firmware->setEnabled(true);
         break;
     case DataSource::Status::CONNECTED:
         ui->actionStart->setIcon(QIcon(":/icons/start"));
@@ -157,6 +159,7 @@ void MainWindow::setStatus(DataSource::Status newStatus)
         ui->actionSet_USB_Connection->setIcon(QIcon(":/icons/connected"));
         statusTextLabel->setText("Sensor Status: Connected");
         statusImageLabel->setPixmap(QPixmap(":/icons/connected"));
+        ui->actionFlash_Firmware->setEnabled(true);
         break;
     case DataSource::Status::SET_BASEVECTOR:
         ui->actionStart->setIcon(QIcon(":/icons/paused"));
@@ -168,6 +171,7 @@ void MainWindow::setStatus(DataSource::Status newStatus)
         ui->actionSet_USB_Connection->setIcon(QIcon(":/icons/connected"));
         statusTextLabel->setText("Sensor Status: Setting Base Vector (R0)...");
         statusImageLabel->setPixmap(QPixmap(":/icons/baseVector"));
+        ui->actionFlash_Firmware->setEnabled(false);
         break;
     case DataSource::Status::RECEIVING_DATA:
         ui->actionStart->setIcon(QIcon(":/icons/paused"));
@@ -179,6 +183,7 @@ void MainWindow::setStatus(DataSource::Status newStatus)
         ui->actionSet_USB_Connection->setIcon(QIcon(":/icons/connected"));
         statusTextLabel->setText("Sensor Status: Receiving Data");
         statusImageLabel->setPixmap(QPixmap(":/icons/recording"));
+        ui->actionFlash_Firmware->setEnabled(false);
         break;
     case DataSource::Status::CONNECTION_ERROR:
         ui->actionStart->setEnabled(false);
@@ -189,6 +194,7 @@ void MainWindow::setStatus(DataSource::Status newStatus)
         ui->actionSet_USB_Connection->setIcon(QIcon(":/icons/disconnected"));
         statusTextLabel->setText("Sensor Status: Error");
         statusImageLabel->setPixmap(QPixmap(":/icons/error"));
+        ui->actionFlash_Firmware->setEnabled(true);
         break;
     case DataSource::Status::PAUSED:
         ui->actionStart->setIcon(QIcon(":/icons/start"));
@@ -200,6 +206,7 @@ void MainWindow::setStatus(DataSource::Status newStatus)
         ui->actionSet_USB_Connection->setIcon(QIcon(":/icons/connected"));
         statusTextLabel->setText("Sensor Status: Paused");
         statusImageLabel->setPixmap(QPixmap(":/icons/paused"));
+        ui->actionFlash_Firmware->setEnabled(false);
         break;
     default:
         Q_ASSERT("Unknown Sensor Status!" && false);
@@ -813,4 +820,9 @@ void MainWindow::on_actionFit_curve_triggered()
 void MainWindow::on_actionLabViewFile_triggered()
 {
     emit saveAsLabviewFileRequested();
+}
+
+void MainWindow::on_actionFlash_Firmware_triggered()
+{
+    emit flashFirmwareRequested();
 }
