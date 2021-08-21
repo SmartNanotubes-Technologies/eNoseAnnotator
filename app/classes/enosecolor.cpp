@@ -37,10 +37,13 @@ QColor ENoseColor::getFuncColor(int func)
     int funcSize = funcList.size();
 
     // pick color from list
-    if (funcSize < smallColorList.size())
+    if (funcSize <= smallColorList.size())
         color = smallColorList[funcList.indexOf(func)];
-    else if (funcSize < bigColorList.size())
+    else if (funcSize <= bigColorList.size())
         color = bigColorList[funcList.indexOf(func)];
+    else if (funcSize <= hugeColorList.size())
+        color = hugeColorList[funcList.indexOf(func)];
+
     // too many funcs: pick equally spaced color
     else
     {

@@ -79,6 +79,35 @@ private:
         QColor("#ffff54")   // laserlemon
     };
 
+    QList<QColor> hugeColorList { // source: https://graphicdesign.stackexchange.com/questions/3682/where-can-i-find-a-large-palette-set-of-contrasting-colors-for-coloring-many-d ("A Colour Alphabet and the Limits of Colour Coding.")
+        QColor(240,163,255),
+        QColor(0,117,220),
+        QColor(153,63,0),
+        QColor(76,0,92),
+        QColor(25,25,25),
+        QColor(0,92,49),
+        QColor(43,206,72),
+        QColor(255,204,153),
+        QColor(128,128,128),
+        QColor(148,255,181),
+        QColor(143,124,0),
+        QColor(157,204,0),
+        QColor(194,0,136),
+        QColor(0,51,128),
+        QColor(255,164,5),
+        QColor(255,168,187),
+        QColor(66,102,0),
+        QColor(255,0,16),
+        QColor(94,241,242),
+        QColor(0,153,143),
+        QColor(224,255,102),
+        QColor(116,10,255),
+        QColor(153,0,0),
+        QColor(255,255,128),
+        QColor(255,255,0),
+        QColor(255,80,5)
+    };
+
 public:
 
 };
