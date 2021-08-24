@@ -106,12 +106,21 @@ void FlashDialog::detectPython()
 {
     // init python settings
     textDisplay->appendPlainText("--- Setting up esptool ---\n");
+    pythonErrorLabel->setText("Detecting Python...");
+    pythonErrorLabel->setStyleSheet("QLabel { color : yellow; }");
+
     pythonOk = espFlasher->checkDefaultPython();
     pythonDirLineEdit->setText(espFlasher->getPythonDir());
     pythonCmdLineEdit->setText(espFlasher->getPythonCmd());
 
     if (pythonOk)
         checkSettings();
+    else
+    {
+        pythonErrorLabel->setText("No Python version >= 2.7 or 3.4 detected. \nDownload and install the latest version from <a href='https://www.python.org/downloads/'>here</a> and/ or update the python settings.");
+        pythonErrorLabel->setStyleSheet("QLabel { color : red; }");
+        flashButton->setEnabled(false);
+    }
 }
 
 void FlashDialog::setPython(QString pythonDir, QString pythonCmd)

@@ -234,10 +234,7 @@ bool EspFlasher::checkDefaultPython()
         pythonDirs << "" << "/usr/bin";
     }
 
-    if (checkPythonCmds(pythonDirs, cmds))
-        return true;
-
-    return false;
+    return checkPythonCmds(pythonDirs, cmds);
 }
 
 QString EspFlasher::getShell()
@@ -272,7 +269,6 @@ void EspFlasher::runCommand(QString command)
     emit debugMsg(msg);
 
     process->start(shell, arguments);
-
 }
 
 QString EspFlasher::getPythonFilePath(QString path, QString cmd)
