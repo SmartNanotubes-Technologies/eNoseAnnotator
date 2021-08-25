@@ -76,13 +76,13 @@ bool EspFlasher::checkPython(QString path, QString cmd)
         if (checkPythonVersion(versionString))
         {
             QString msg = "-> Valid python version detected.";
-            emit debugMsg(msg);
+            emit outputMsg(msg);
             return true;
         }
         else
         {
             QString msg = "-> Invalid python version detected.";
-            emit debugMsg(msg);
+            emit outputMsg(msg);
             errorMsg = versionString + " was found.\nPython version >= 2.7 or 3.4 is needed.\n" + python_install_msg;
             return false;
         }
@@ -136,9 +136,9 @@ bool EspFlasher::checkPythonCmds(QStringList pathList, QStringList cmds)
 
 bool EspFlasher::checkPip()
 {
-    runCommand(pythonCmd + " -m pip install --upgrade pip");
+    runCommand(getPythonFilePath() + " -m pip install --upgrade pip");
     process->waitForFinished(60000);
-    runCommand(pythonCmd + " -m pip --version");
+    runCommand(getPythonFilePath() + " -m pip --version");
     process->waitForFinished();
 
     int exitCode = process->exitCode();
@@ -153,7 +153,7 @@ bool EspFlasher::checkPip()
     if (exitCode == 0)
     {
         QString msg = "-> Pip is installed.";
-        emit debugMsg(msg);
+        emit outputMsg(msg);
         return true;
     }
 
@@ -163,7 +163,7 @@ bool EspFlasher::checkPip()
 
 bool EspFlasher::checkEsptool()
 {
-    runCommand(pythonCmd + " -m esptool version");
+    runCommand(getPythonFilePath() + " -m esptool version");
     process->waitForFinished();
 
     int exitCode = process->exitCode();
@@ -171,7 +171,7 @@ bool EspFlasher::checkEsptool()
     if (exitCode == 0)
     {
         QString msg = "-> esptool is installed.";
-        emit debugMsg(msg);
+        emit outputMsg(msg);
         return true;
     }
 
@@ -181,12 +181,12 @@ bool EspFlasher::checkEsptool()
 
 void EspFlasher::installPip()
 {
-    runCommand(pythonCmd + " -m ensurepip --upgrade");
+    runCommand(getPythonFilePath() + " -m ensurepip --upgrade");
 }
 
 void EspFlasher::installEsptool()
 {
-    runCommand(pythonCmd + " -m pip install esptool");
+    runCommand(getPythonFilePath() + " -m pip install esptool");
 }
 
 void EspFlasher::flashFirmware(QString port, QString filepath)
@@ -194,7 +194,7 @@ void EspFlasher::flashFirmware(QString port, QString filepath)
     if (sys == "linux")
         port = "/dev/" + port;
 
-    runCommand(pythonCmd + " -m esptool --port " + port + " write_flash 0x10000 " + filepath);
+    runCommand(getPythonFilePath() + " -m esptool --port " + port + " write_flash 0x10000 " + filepath);
 }
 
 QString EspFlasher::getIdentifier() const
@@ -210,23 +210,51 @@ void EspFlasher::setIdentifier(const QString &value)
 bool EspFlasher::checkDefaultPython()
 {
     QString msg = "Checking for default python installation...";
-    emit debugMsg(msg);
+    emit outputMsg(msg);
 
     QStringList cmds, pythonDirs;
-
 
     if (sys == "win")
     {
         cmds << "python.exe" << "python" << "py";
+        msg = "Cmds: " + cmds.join(", ");
+        emit debugMsg(msg);
 
+        // global installations
         QStringList defaultDirs;
-        defaultDirs << "" << "C:/Program Files" << "C:/Program Files (x86)" << QStandardPaths::standardLocations(QStandardPaths::AppLocalDataLocation);
+        defaultDirs << "" << "C:/Program Files" << "C:/Program Files (x86)";
 
+        // local installations
+        QStringList appDataLocations = QStringList() << QStandardPaths::standardLocations(QStandardPaths::GenericDataLocation);
+        for (auto dir : appDataLocations)
+            defaultDirs << dir + "/Programs";
+
+        // add Python subdirectory
+        for (auto dir : defaultDirs)
+            defaultDirs << dir + "/Python";
+
+        msg = "defaultDirs: " + defaultDirs.join(", ");
+        emit debugMsg(msg);
+
+        // find all default installation dirs
         for (auto dirPath : defaultDirs)
         {
-            QDir dir = QDir(dirPath);
-            pythonDirs << dir.entryList(QStringList() << "Python *", QDir::Dirs);
+            if (QDir(dirPath).exists())
+            {
+                QStringList dirs = QDir(dirPath).entryList(QDir::Dirs  | QDir::NoDotAndDotDot);
+                for (auto dir : dirs)
+                {
+                    QRegularExpression re("Python(\\d+)(\\.\\d+)*$");
+                    auto match = re.match(dir);
+
+                    if (match.hasMatch())
+                        pythonDirs << dirPath + "/" + dir;
+                }
+            }
         }
+
+        msg = "pythonDirs: " + pythonDirs.join(", ");
+        emit debugMsg(msg);
     }
     else if (sys == "linux")
     {
@@ -266,13 +294,19 @@ void EspFlasher::runCommand(QString command)
     arguments << command;
 
     QString msg = "$ " + shell + " " + arguments.join(" ");
-    emit debugMsg(msg);
+    emit outputMsg(msg);
 
     process->start(shell, arguments);
 }
 
 QString EspFlasher::getPythonFilePath(QString path, QString cmd)
 {
+    if (path.isEmpty() && cmd.isEmpty())
+    {
+        path = pythonDir;
+        cmd = pythonCmd;
+    }
+
     if (path == "")
         return cmd;
     else
@@ -292,6 +326,6 @@ void EspFlasher::readCommandData()
     QString msg;
     msg += standardOutput;
     msg += errorOutput;
-    emit debugMsg(msg);
+    emit outputMsg(msg);
 }
 

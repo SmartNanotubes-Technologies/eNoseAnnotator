@@ -86,7 +86,10 @@ FlashDialog::FlashDialog(QWidget *parent) :
     setLayout(layout);
 
     // connections
+    #ifdef QT_DEBUG
     connect(espFlasher, &EspFlasher::debugMsg, this, &FlashDialog::addOutputMsg);
+    #endif
+    connect(espFlasher, &EspFlasher::outputMsg, this, &FlashDialog::addOutputMsg);
     connect(espFlasher, &EspFlasher::commandFinished, this, &FlashDialog::commandFinished);
     connect(pythonDirLineEdit, &QLineEdit::editingFinished, this, &FlashDialog::checkSettings);
     connect(pythonCmdLineEdit, &QLineEdit::editingFinished, this, &FlashDialog::checkSettings);
@@ -114,7 +117,10 @@ void FlashDialog::detectPython()
     pythonCmdLineEdit->setText(espFlasher->getPythonCmd());
 
     if (pythonOk)
+    {
+        settingsReset = true;
         checkSettings();
+    }
     else
     {
         pythonErrorLabel->setText("No Python version >= 2.7 or 3.4 detected. \nDownload and install the latest version from <a href='https://www.python.org/downloads/'>here</a> and/ or update the python settings.");
@@ -140,7 +146,7 @@ void FlashDialog::checkSettings()
     if (cmdRunning)
         return;
 
-    bool pythonSettingsChanged = pythonDirLineEdit->text() != espFlasher->getPythonDir() || pythonCmdLineEdit->text() != espFlasher->getPythonCmd();
+    bool pythonSettingsChanged = settingsReset || pythonDirLineEdit->text() != espFlasher->getPythonDir() || pythonCmdLineEdit->text() != espFlasher->getPythonCmd();
     bool firmwareOk = QFile::exists(firmwareBinaryLineEdit->text());
 
     if (!pythonSettingsChanged && pythonOk && pipOk && esptoolOk)
@@ -157,6 +163,7 @@ void FlashDialog::checkSettings()
         pipInstalled = false;
         esptoolOk = false;
         esptoolInstalled = false;
+        settingsReset = false;
 
         espFlasher->setPythonDir(pythonDirLineEdit->text());
         espFlasher->setPythonCmd(pythonCmdLineEdit->text());
@@ -316,7 +323,11 @@ void FlashDialog::handleButtonBoxClick(QAbstractButton *button)
     else if (button == buttonBox->button(QDialogButtonBox::Cancel))
         reject();
     else if (button == buttonBox->button(QDialogButtonBox::Reset))
+    {
         detectPython();
+        firmwareBinaryLineEdit->setText("");
+        checkSettings();
+    }
 }
 
 bool FlashDialog::getEsptoolOk() const

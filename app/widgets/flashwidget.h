@@ -45,6 +45,8 @@ private slots:
     void flashFirmware();
     void handleButtonBoxClick(QAbstractButton *button);
 
+protected:
+
 private:
     QLineEdit *pythonDirLineEdit, *pythonCmdLineEdit, *firmwareBinaryLineEdit;
     QLabel *pythonErrorLabel;
@@ -56,6 +58,7 @@ private:
     bool pythonOk = false,  pipOk = false,  esptoolOk = false,  pipInstalled = false, esptoolInstalled = false;
     bool cmdRunning = false, printOutput = true;
     bool flashingFirmware = false;
+    bool settingsReset = false;
 };
 
 #endif // FLASHWIDGET_H

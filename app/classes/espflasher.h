@@ -35,6 +35,7 @@ signals:
     void pythonDirSet(QString &pythonDir);
     void pythonCmdSet(QString &pythonCmd);
     void debugMsg(QString &msg);
+    void outputMsg(QString &msg);
     void commandFinished(int exitCode);
 //    void commandFinished(int exitCode, QProcess::ExitStatus exitStatus);
 
@@ -62,7 +63,7 @@ private:
 
     bool checkPythonVersion(QString versionString) const;
     QString getShell();
-    QString getPythonFilePath(QString path, QString cmd);
+    QString getPythonFilePath(QString path="", QString cmd="");
     void runCommand(QString command);
 };
 

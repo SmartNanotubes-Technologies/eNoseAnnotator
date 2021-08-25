@@ -756,6 +756,7 @@ void Controler::openFlashDialog()
 
     QSettings settings(QCoreApplication::organizationName(), QCoreApplication::applicationName());
     FlashDialog flashDialog(w);
+    flashDialog.resize(qRound(0.9 * w->width()), qRound(0.95 * w->height()));
 
     // load python settings
     QString pythonDir = settings.value(PYTHON_DIR_KEY, "").toString();
