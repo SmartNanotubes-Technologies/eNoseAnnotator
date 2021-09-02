@@ -225,9 +225,9 @@ void USBDataSource::processLine(const QByteArray &data)
                 QString parameterName = vals[0];
 
                 if (parameterName == "humidity")
-                    parameterName += " [%]";
+                    parameterName += "[%]";
                 else if (parameterName == "temperature")
-                    parameterName += " [°C]";
+                    parameterName += "[°C]";
 
                 parameterMap[parameterName] = vals[1].toDouble();
             }

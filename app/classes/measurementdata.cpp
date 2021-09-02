@@ -695,8 +695,11 @@ void MeasurementData::saveLabViewFile(QString filepath)
     // write header
     QStringList header;
 
-    auto sensorAttributeList = sensorAttributes;
-    header << sensorAttributeList;
+    for (QString sensorAttribute : sensorAttributes)
+    {
+        header << sensorAttribute.split(" ").join("");
+    }
+
     for (size_t i=0; i<nChannels(); i++) {
         header << "t" + QString::number(i+1);
         header << "R" + QString::number(i+1);
@@ -727,7 +730,7 @@ void MeasurementData::saveLabViewFile(QString filepath)
             QStringList valueList;
 
             // additional sensors
-            for (auto attribute : sensorAttributeList)
+            for (auto attribute : sensorAttributes)
                 valueList << QString::number(vector.sensorAttributes[attribute], 'f', 2);
 
             // t & R pairs
