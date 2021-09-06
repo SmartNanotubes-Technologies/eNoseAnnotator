@@ -131,7 +131,13 @@ jobs:
           dump_syms "app/release/app.pdb" > "%SYMBOL_DIR%/%SYMBOL_FILE%"
           cp "app/release/app.pdb" "%SYMBOL_DIR%/"
         shell: cmd
-          
+        
+      - name: load vc_redist
+        run: |
+             $client = new-object System.Net.WebClient
+             $client.DownloadFile("https://aka.ms/vs/16/release/vc_redist.x64.exe","vc_redist.x64.exe")
+             Copy-Item "vc_redist.x64.exe" -Destination "$($env:DEPLOY_DIR)/$($env:DEPLOY_DIR)/bin"
+
       #                         #
       #         deploy          #
       #                         #
