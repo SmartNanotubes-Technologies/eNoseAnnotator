@@ -2,9 +2,6 @@
 
 eNoseAnnotator is a program used to view, annotate and store measurements of the eNose sensor. Currently Windows systems are supported.
 
-[![CI: Windows Build](https://img.shields.io/appveyor/ci/tilagiho/eNoseAnnotator/master?label=CI%20Windows%20Build)](https://ci.appveyor.com/project/tilagiho/eNoseAnnotator/branch/master) 
-
-
 ## How to install
 
 First, download and install the [sensor drivers](https://www.silabs.com/products/development-tools/software/usb-to-uart-bridge-vcp-drivers). 
