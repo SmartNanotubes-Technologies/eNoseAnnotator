@@ -1,37 +1,26 @@
 # eNoseAnnotator
 
-eNoseAnnotator is a program used to view, annotate and store measurements of the eNose sensor. Currently Windows and Linux systems are supported.
-
-[![Latest Release](https://img.shields.io/github/v/release/Tilagiho/eNoseAnnotator?label=Latest%20Release)](https://github.com/tilagiho/eNoseAnnotator/releases)
+eNoseAnnotator is a program used to view, annotate and store measurements of the eNose sensor. Currently Windows systems are supported.
 
 [![CI: Windows Build](https://img.shields.io/appveyor/ci/tilagiho/eNoseAnnotator/master?label=CI%20Windows%20Build)](https://ci.appveyor.com/project/tilagiho/eNoseAnnotator/branch/master) 
-[![CI: Linux Build](https://img.shields.io/travis/com/tilagiho/eNoseAnnotator/master?label=CI%20Linux%20Build)](https://travis-ci.com/github/Tilagiho/eNoseAnnotator)
 
-[![Code Quality](https://www.code-inspector.com/project/15126/score/svg) ![Code Grade](https://www.code-inspector.com/project/15126/status/svg)](https://frontend.code-inspector.com/public/project/15126/eNoseAnnotator/dashboard)
 
 ## How to install
 
-### Windows:
-First, install the [sensor drivers](https://www.silabs.com/products/development-tools/software/usb-to-uart-bridge-vcp-drivers).
+First, download and install the [sensor drivers](https://www.silabs.com/products/development-tools/software/usb-to-uart-bridge-vcp-drivers). 
+Windows 10: "CP210x Universal Windows Driver", Windows 8/ 7: "CP210x Windows Drivers"
+
 Then download the eNoseAnnotator windows archive from the assets of the latest release (green label).
 Unpack the zip file where you want to use the program. Install the vc redistributable package by running "vc_redist.x64.exe" in the directory "bin".
 Finally, double-click "eNoseAnnotator.exe" in the directory "bin" to run the program.
 
 
-### Linux:
-Download the AppImage from the assets of the latest release (green label) and put it where you want to run the program.
-
-Make the AppImage in the extracted directory executable: 
-- In Nautilus (default ubuntu file browser): Right-click on the "eNoseAnnotator-\*.AppImage" and select "Properties". In the "Permissions" tab check the "Allow executing file as program" checkbox.
-- In terminal: Open terminal in the directory of the AppImage. Execute `chmod +x eNoseAnnotator-*.AppImage`.
-
-You can now run eNoseAnnotator by double-clicking the AppImage or executing `./eNoseAnnotator-*.AppImage` in the terminal.
 
 ## How to use
 
 ### Connecting a sensor
 
-Plug in a eNose sensor. In the tool bar click the USB connection symbol, select the usb-port of the sensor and hit apply. 
+Plug in an eNose sensor. In the tool bar click the USB connection symbol, select the usb-port of the sensor and hit apply. 
 
 To start the measurement press start symbol in the tool bar. If you have not set the functionalisation of the sensor, you will be promted to do so. After calculating the base vector of the sensor the measurement will be started. The base vector is the average vector of the first few measurements.
 
