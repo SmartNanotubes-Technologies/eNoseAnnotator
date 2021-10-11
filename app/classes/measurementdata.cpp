@@ -154,8 +154,9 @@ void MeasurementData::addVector(uint timestamp, AbsoluteMVector vector)
     //  double usage of timestamps:
     if (data.contains(timestamp))
     {
-        qCritical() << timestamp << ": double usage of timestamp!";
-        throw std::runtime_error("Error adding vector: double usage of timestamp!");
+        return; // skip over multiple sensor readings in one second
+//        qCritical() << timestamp << ": multiple sensor readings in one second!";
+//        throw std::runtime_error("Error adding vector: double usage of timestamp!");
     }
 
     // set base vector
