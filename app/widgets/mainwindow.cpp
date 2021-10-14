@@ -9,6 +9,7 @@
 #include "convertwizard.h"
 #include "setsensorfailuresdialog.h"
 #include "curvefitwizard.h"
+#include "logindialog.h"
 
 #include <QMetaObject>
 
@@ -825,4 +826,10 @@ void MainWindow::on_actionLabViewFile_triggered()
 void MainWindow::on_actionFlash_Firmware_triggered()
 {
     emit flashFirmwareRequested();
+}
+
+void MainWindow::on_actionUpload_data_triggered()
+{
+    LoginDialog* dialog = new LoginDialog(this);
+    dialog->exec();
 }

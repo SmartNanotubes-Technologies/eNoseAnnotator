@@ -78,6 +78,7 @@ SOURCES += \
     widgets/generalsettings.cpp \
     widgets/infowidget.cpp \
     widgets/linegraphwidget.cpp \
+    widgets/logindialog.cpp \
     widgets/mainwindow.cpp \
     widgets/setsensorfailuresdialog.cpp \
     widgets/sourcedialog.cpp \
@@ -118,6 +119,7 @@ HEADERS += \
     widgets/generalsettings.h \
     widgets/infowidget.h \
     widgets/linegraphwidget.h \
+    widgets/logindialog.h \
     widgets/mainwindow.h \
     widgets/setsensorfailuresdialog.h \
     widgets/sourcedialog.h \

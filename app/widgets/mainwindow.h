@@ -155,6 +155,8 @@ private slots:
 
     void on_actionFlash_Firmware_triggered();
 
+    void on_actionUpload_data_triggered();
+
 private:
     Ui::MainWindow *ui;
 

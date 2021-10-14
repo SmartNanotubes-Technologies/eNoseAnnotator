@@ -24,4 +24,7 @@
         <file alias="add">images/add.png</file>
         <file alias="minus">images/minus.png</file>
     </qresource>
+    <qresource prefix="/logos">
+        <file alias="web_logo">images/Logo_SmartNanotubes_Web_FARBIG_OHNE-RAND.png</file>
+    </qresource>
 </RCC>

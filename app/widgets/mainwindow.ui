@@ -148,6 +148,7 @@
     <property name="title">
      <string>Tools</string>
     </property>
+    <addaction name="actionUpload_data"/>
     <addaction name="actionConverter"/>
     <addaction name="actionFit_curve"/>
    </widget>
@@ -452,6 +453,11 @@
   <action name="actionFlash_Firmware">
    <property name="text">
     <string>Flash Firmware</string>
+   </property>
+  </action>
+  <action name="actionUpload_data">
+   <property name="text">
+    <string>Upload data</string>
    </property>
   </action>
  </widget>
