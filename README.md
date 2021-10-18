@@ -41,6 +41,15 @@ You can load and save data using the the symbols in the toolbar at the top.
 
 The data is stored in the format of a .csv file.
 
+### Flashing Firmware
+To update the firmware of a device, you need a current version of the eNoseAnnotator and [Python](https://www.python.org/downloads/) installed on your system. You also need a binary file (.bin) of the latest firmware provided by us. 
+
+Open the eNoseAnnotator and select 'Sensor->Flash firmware' from the top menu. The software should automatically recognize default Python installations and install the packages required. This might take some time. If no valid Python installation is found, check the installation. You might have to manually set the Python directory and command. 
+Select the correct port to be flashed. It should have "Silicon Labs" as the manufacturer and "CP2102N ..." as description. 
+
+Finally, select the path to the firmware binary file by pressing the three dots. If everything was set up correctly, you can now press the 'Flash'-button in order to start flashing the firmware. The 'Output' console should show the progress of the flashing process and signal success once it finished.
+
+
 ## Crash reports
 
 The eNoseAnnotator automatically creates a crash report when it terminates unexpectedly. If you experience crashes, the related crash reports can help us fixing the problem.
