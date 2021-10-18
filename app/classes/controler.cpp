@@ -645,21 +645,18 @@ void Controler::setSourceConnection()
     // source was set before
     if (source != nullptr)
     {
-        // set previous settings
-        if (!mData->getSensorId().isEmpty())
-            dialog->setSensorId(mData->getSensorId());
-
-        dialog->setNChannels(MVector::nChannels);
-        dialog->setTimeout(source->getTimeout());
-
         // usb specific
         if (source->sourceType() == DataSource::SourceType::USB)
         {
             USBDataSource::Settings usbSettings;
             usbSettings.portName = source->identifier();
+            usbSettings.deviceId = static_cast<USBDataSource*>(source)->getMAC();
+            usbSettings.firmwareVersion = static_cast<USBDataSource*>(source)->getFirmwareVersion();
+            usbSettings.hasEnvSensors = static_cast<USBDataSource*>(source)->getHasEnvSensors();
 
             dialog->setSourceType(DataSource::SourceType::USB);
-            dialog->setUSBSettings(usbSettings);
+            if (source->status() != DataSource::Status::NOT_CONNECTED && source->status() != DataSource::Status::CONNECTION_ERROR)
+                dialog->setUSBSettings(usbSettings, source->getNChannels());
         }
         else if (source->sourceType() == DataSource::SourceType::FAKE)
         {
@@ -672,14 +669,16 @@ void Controler::setSourceConnection()
     if (dialog->exec())
     {
         DataSource::SourceType sourceType = dialog->getSourceType();
-        QString identifier = dialog->getIdentifier();
-        QString sensorId =dialog->getSensorId();
+        USBDataSource::Settings usbSettings = dialog->getUSBSettings();
+        QString identifier = usbSettings.portName;
+        QString sensorId = usbSettings.deviceId;
+        int nChannels = dialog->getNChannels();
 
         // source was set before
         if (source != nullptr)
         {
             // if new source type, identifier, new nChannels or timeout :
-            if (identifier != source->identifier() || sourceType != source->sourceType() || dialog->getNChannels() != MVector::nChannels)
+            if (identifier != source->identifier() || sourceType != source->sourceType() || nChannels != MVector::nChannels)
             {
                 // measurement running:
                // -> ask if measurement should be stopped
@@ -700,10 +699,9 @@ void Controler::setSourceConnection()
             }
 
             // sensor Id was changed
-            else if (sensorId != mData->getSensorId() || dialog->getTimeout() != source->getTimeout())
+            else if (sensorId != mData->getSensorId())
             {
                 mData->setSensorId(sensorId);
-                source->setTimeout(dialog->getTimeout());
             }
         }
 
@@ -715,15 +713,12 @@ void Controler::setSourceConnection()
             // usb source:
             if (sourceType == DataSource::SourceType::USB)
             {
-                USBDataSource::Settings usbSettings;
-                usbSettings.portName = identifier;
-
-                source = new USBDataSource(usbSettings, dialog->getTimeout(), dialog->getNChannels());
+                source = new USBDataSource(usbSettings, DEVICE_TIMEOUT, nChannels);
             }
             // fake source:
             else if (sourceType == DataSource::SourceType::FAKE)
             {
-                source = new FakeDatasource(dialog->getTimeout(), dialog->getNChannels());
+                source = new FakeDatasource(DEVICE_TIMEOUT, nChannels);
             }
 
             // run source in separate thread
@@ -741,6 +736,8 @@ void Controler::setSourceConnection()
             // update sensor information
             mData->setSensorId(sensorId);
             w->sensorConnected(sensorId);
+            if (usbSettings.firmwareVersion >= "1.3.0")
+                w->setFanLevel(3);
         } else if (source->status() == DataSource::Status::CONNECTION_ERROR)
         {
             QMetaObject::invokeMethod(source, "reconnect", Qt::QueuedConnection);

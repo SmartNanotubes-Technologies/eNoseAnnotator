@@ -22,6 +22,11 @@ USBDataSource::~USBDataSource()
     delete serial;
 }
 
+USBDataSource::Settings USBDataSource::getSettings()
+{
+    return settings;
+}
+
 void USBDataSource::init()
 {
     serial = new QSerialPort();
@@ -85,7 +90,7 @@ void USBDataSource::openSerialPort()
     serial->setFlowControl(settings.flowControl);
 
     // open connection
-    if (serial->open(QIODevice::ReadOnly))
+    if (serial->open(QIODevice::ReadWrite))
     {
         serial->clear();
         setStatus (DataSource::Status::CONNECTING);
@@ -178,6 +183,8 @@ void USBDataSource::handleTimeout()
  */
 void USBDataSource::processLine(const QByteArray &data)
 {
+    QString line(data);
+
     if (connectionStatus == DataSource::Status::CONNECTING)
     {
         if (runningMeasFailed)
@@ -186,12 +193,19 @@ void USBDataSource::processLine(const QByteArray &data)
             setStatus(DataSource::Status::PAUSED);
         }
         else
-            setStatus(DataSource::Status::CONNECTED);
+        {
+            if (isDeviceInfo(line) || deviceInfoRequests == 2)
+                setStatus(DataSource::Status::CONNECTED);
+            else
+            {
+                getChannelInfo(line);
+                requestDeviceInfo();
+            }
+            return;
+        }
     }
     // reset timer
     timer->start(timeout*1000);
-
-    QString line(data);
 
 //    qDebug() << line;
     if (line.startsWith("count"))
@@ -290,6 +304,49 @@ void USBDataSource::processLine(const QByteArray &data)
     }
 }
 
+
+bool USBDataSource::isDeviceInfo(QString line)
+{
+    qDebug() << line;
+    QRegularExpression infoRegex("^V(\\d+\\.\\d+\\.\\d+);(([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2}))$");
+    auto infoMatch = infoRegex.match(line);
+
+    if (!infoMatch.hasMatch())
+        return false;
+
+    settings.firmwareVersion = infoMatch.captured(1);
+    settings.deviceId = infoMatch.captured(2);
+
+    return true;
+}
+
+void USBDataSource::requestDeviceInfo()
+{
+    if (deviceInfoRequests == 0)
+    {
+        QString command = "GET_INFO\n";
+        serial->write(command.toStdString().c_str(), command.size());
+    }
+    deviceInfoRequests++;
+}
+
+void USBDataSource::getChannelInfo(QString line)
+{
+    QRegularExpression varRegex("^var(\\d+)=.*$");
+
+    QStringList elements = line.split(',');
+    for (QString element : elements)
+    {
+        auto varMatch = varRegex.match(element);
+        if (varMatch.hasMatch() && varMatch.captured(1).toInt() > nChannels)
+        {
+            nChannels = varMatch.captured(1).toInt();
+        }
+        else if (element.startsWith("temperature") || element.startsWith("humidity"))
+            settings.hasEnvSensors = true;
+    }
+}
+
 /*!
  * triggered to start emition of measurements
  */
@@ -382,4 +439,29 @@ AbsoluteMVector USBDataSource::getVector(QStringList vectorList, QMap<QString, d
     vector.sensorAttributes = parameterMap;
 
     return vector;
+}
+
+bool USBDataSource::getHasEnvSensors() const
+{
+    return settings.hasEnvSensors;
+}
+
+QString USBDataSource::getMAC() const
+{
+    return settings.deviceId;
+}
+
+QString USBDataSource::getFirmwareVersion() const
+{
+    return settings.firmwareVersion;
+}
+
+int USBDataSource::getNChannels() const
+{
+    return nChannels;
+}
+
+bool USBDataSource::getDeviceInfoRequested() const
+{
+    return deviceInfoRequests > 0;
 }

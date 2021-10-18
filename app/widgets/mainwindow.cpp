@@ -5,7 +5,6 @@
 #include "generalsettings.h"
 #include "classselector.h"
 #include "linegraphwidget.h"
-#include "sourcedialog.h"
 #include "convertwizard.h"
 #include "setsensorfailuresdialog.h"
 #include "curvefitwizard.h"

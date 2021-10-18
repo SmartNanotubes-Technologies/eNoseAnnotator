@@ -50,4 +50,7 @@
 #define PYTHON_DIR_KEY "settings/pythonDir"
 #define PYTHON_CMD_KEY "settings/pythonCmd"
 
+// devices
+#define DEVICE_TIMEOUT 6
+
 #endif // DEFAULTVALUES_H

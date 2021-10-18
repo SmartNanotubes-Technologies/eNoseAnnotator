@@ -1,44 +1,125 @@
 #include "sourcedialog.h"
 #include "ui_sourcedialog.h"
 #include "usbsettingswidget.h"
+#include <QSerialPortInfo>
+#include "../classes/usbdatasource.h"
+
 
 SourceDialog::SourceDialog(QWidget *parent) :
     QDialog(parent),
-    ui(new Ui::SourceDialog),
-    usbWidget(new USBSettingsWidget(this)),
-    fakeWidget(new USBSettingsWidget(this))
+    ui(new Ui::SourceDialog)
 {
     ui->setupUi(this);
 
-    // input validator for sensorId line edit
-    QRegExp rx("[\\w| ]*");
-    ui->sensorIdLineEdit->setValidator(new QRegExpValidator(rx, this));
-
-    // add source widgets
-    ui->stackedWidget->addWidget(usbWidget);
-    ui->stackedWidget->addWidget(fakeWidget);
-    fakeWidget->setHidden(true);
-
     #ifdef QT_DEBUG
-    ui->comboBox->addItem("Debug: Fake Data Source");
+    ui->sourceTypeComboBox->addItem("Debug: Fake Data Source");
+    #else
+    ui->sourceTypeWidget->setHidden(true);
     #endif
+
+    ui->firmwareUpdateLabel->setStyleSheet("QLabel { color: red;}");
+    ui->firmwareUpdateLabel->setHidden(true);
+    ui->applyButton->setEnabled(false);
 }
 
 SourceDialog::~SourceDialog()
 {
     delete ui;
-    delete usbWidget;
-    delete fakeWidget;
 }
 
-QString SourceDialog::getIdentifier()
+void SourceDialog::scanUSBDevices()
 {
-    return identifier;
+    const auto infos = QSerialPortInfo::availablePorts();
+    for (const QSerialPortInfo &info : infos) {
+        if (info.portName() == defaultSettings.portName)
+        {
+            addSource(defaultSettings, nChannels);
+            portScansStarted++;
+            portScansCompleted++;
+            continue;
+        }
+
+        QThread *sourceThread = new QThread();
+
+        USBDataSource::Settings scanSettings;
+        scanSettings.portName = info.portName();
+
+        USBDataSource *source = new USBDataSource(scanSettings, 10, MVector::nChannels);
+
+        // run source in separate thread
+        source->moveToThread(sourceThread);
+
+        connect(sourceThread, SIGNAL(started()), source, SLOT(started())); // init source when thread was started
+        connect(source, SIGNAL(destroyed()), sourceThread, SLOT(quit()));   // end thread when source is deleted
+        connect(sourceThread, SIGNAL(finished()), sourceThread, SLOT(deleteLater())); // delete thread when finishes
+        connect(source, &USBDataSource::statusSet, this, &SourceDialog::onSourceStatusSet);
+        sourceThread->start();
+        portScansStarted++;
+    }
 }
 
-void SourceDialog::setUSBSettings(USBDataSource::Settings usbSettings)
+void SourceDialog::onSourceStatusSet(DataSource::Status newStatus)
 {
-    usbWidget->setPortName(usbSettings.portName);
+       USBDataSource* source = static_cast<USBDataSource*>(sender());
+
+       switch (newStatus)
+       {
+       // starting to connect:
+       // -> ignore
+       case DataSource::Status::NOT_CONNECTED:
+       case DataSource::Status::CONNECTING:
+           break;
+        // connection error:
+        // -> no supported device
+       case DataSource::Status::CONNECTION_ERROR:
+           source->deleteLater();
+           portScansCompleted++;
+           break;
+        // connected succesfully
+        // -> compatible device, add device info
+        case DataSource::Status::CONNECTED:
+            addSource(source->getSettings(), source->getNChannels());
+            source->deleteLater();
+            portScansCompleted++;
+           break;
+        default:
+           throw std::runtime_error("Unexpected status!");
+       }
+
+       QString msg;
+       if (portScansStarted == portScansCompleted)
+       {
+           msg = "Scan complete. ";
+           int nDevices = ui->portListComboBox->count();
+           if (nDevices == 1)
+                msg += "1 device detected.";
+           else
+               msg += QString::number(nDevices) + " Smell Inspector devices found.";
+       } else
+       {
+            msg = "Scanning for devices (" + QString::number(portScansCompleted) + "/" + QString::number(portScansStarted) + ")...";
+       }
+       ui->scanLabel->setText(msg);
+}
+void SourceDialog::addSource(USBDataSource::Settings sourceSettings, int nChannels)
+{
+    // prepare device info
+    QStringList sourceInfoList;
+    sourceInfoList << sourceSettings.portName << sourceSettings.deviceId << sourceSettings.firmwareVersion << QString::number(nChannels) << QString::number(sourceSettings.hasEnvSensors);
+
+    // add info to port selection comboBox
+    ui->portListComboBox->addItem(sourceSettings.portName, sourceInfoList);
+}
+
+void SourceDialog::setUSBSettings(USBDataSource::Settings usbSettings, int nChannels)
+{
+    defaultSettings = usbSettings;
+    this->nChannels = nChannels;
+}
+
+USBDataSource::Settings SourceDialog::getUSBSettings() const
+{
+    return usbSettings;
 }
 
 void SourceDialog::on_cancelButton_clicked()
@@ -48,18 +129,17 @@ void SourceDialog::on_cancelButton_clicked()
 
 void SourceDialog::on_applyButton_clicked()
 {
-    sensorId = ui->sensorIdLineEdit->text();
-    Q_ASSERT("sensorId cannot be empty!" && sensorId != "");
-
-    if (ui->comboBox->currentText() == "USB")
+    if (ui->sourceTypeComboBox->currentText() == "USB")
     {
         sourceType = DataSource::SourceType::USB;
-        identifier = usbWidget->getPortName();
+        identifier = ui->portListComboBox->currentText();
+        nChannels = ui->portListComboBox->currentData().toStringList().at(3).toInt();
     }
-    else if (ui->comboBox->currentText() == "Debug: Fake Data Source")
+    else if (ui->sourceTypeComboBox->currentText() == "Debug: Fake Data Source")
     {
         sourceType = DataSource::SourceType::FAKE;
         identifier = "Fake";
+        nChannels = MVector::nChannels;
     }
     else
         Q_ASSERT("Unknown source type selected!" && false);
@@ -67,82 +147,61 @@ void SourceDialog::on_applyButton_clicked()
     this->accept();
 }
 
+int SourceDialog::getNChannels() const
+{
+    return nChannels;
+}
+
 DataSource::SourceType SourceDialog::getSourceType() const
 {
     return sourceType;
 }
 
-void SourceDialog::setSourceType(const DataSource::SourceType &value)
+void SourceDialog::setSourceType(const DataSource::SourceType &sourceType)
 {
-    sourceType = value;
-
     if (sourceType == DataSource::SourceType::USB)
-        ui->stackedWidget->setCurrentWidget(usbWidget);
+        ui->sourceTypeComboBox->setCurrentText("USB");
     else if (sourceType == DataSource::SourceType::FAKE)
-        ui->stackedWidget->setCurrentWidget(fakeWidget);
+        ui->sourceTypeComboBox->setCurrentText("Debug: Fake Data Source");
 }
 
-void SourceDialog::on_sensorIdLineEdit_textEdited(const QString &newText)
+void SourceDialog::on_portListComboBox_currentIndexChanged(int index)
 {
-    if (newText != "" && !ui->applyButton->isEnabled())
+    if (index == -1)
+        return;
+
+    const QStringList list = ui->portListComboBox->itemData(index).toStringList();
+    QString port = list.at(0);
+    QString deviceId = !list.at(1).isEmpty() ? list.at(1) : "Unknown";
+    QString firmwareVersion = !list.at(2).isEmpty() ? list.at(2) : "1.2.0" ;
+    QString nChannels = list.at(3);
+    bool hasEnvSensors = list.at(4) == "1";
+
+    ui->portLabel->setText(tr("Port: %1").arg(port));
+    ui->idLabel->setText(tr("Device Id: %1").arg(deviceId));
+    ui->firmwareVersionLabel->setText(tr("Firmware Version: %1").arg(firmwareVersion));
+    ui->channelLabel->setText(tr("Channels: %1").arg(nChannels));
+
+    // firmware < 1.3.0 and device has environment sensors (temperature/ humidity)
+    // -> firmware has to be updated
+    if (firmwareVersion < "1.3.0" & hasEnvSensors)
     {
-        ui->applyButton->setEnabled(true);
-        ui->applyButton->setToolTip("Apply data source changes.");
-    }
-    else if (newText == "" && ui->applyButton->isEnabled())
-    {
+        ui->firmwareUpdateLabel->setHidden(false);
         ui->applyButton->setEnabled(false);
-        ui->applyButton->setToolTip("Apply data source changes.\nSensor Id cannot be empty.");
-    }
-}
-
-void SourceDialog::on_comboBox_currentTextChanged(const QString &text)
-{
-    if (text == "USB")
+    } else
     {
-        ui->stackedWidget->setCurrentWidget(usbWidget);
-        sourceType = DataSource::SourceType::USB;
+        ui->firmwareUpdateLabel->setHidden(true);
+        ui->applyButton->setEnabled(true);
     }
-    if (text == "Debug: Fake Data Source")
-    {
-        ui->stackedWidget->setCurrentWidget(fakeWidget);
-        sourceType = DataSource::SourceType::FAKE;
-    }
-    else
-        Q_ASSERT("Unknown source type selected!" && false);
+
+    // update usbSettings
+    usbSettings.portName = port;
+    usbSettings.deviceId = deviceId;
+    usbSettings.firmwareVersion = firmwareVersion;
+    usbSettings.hasEnvSensors = hasEnvSensors;
 }
 
-int SourceDialog::getTimeout() const
+void SourceDialog::showEvent(QShowEvent *)
 {
-    return ui->timeoutSpinBox->value();
-}
-
-void SourceDialog::setTimeout(int value)
-{
-    ui->timeoutSpinBox->setValue(value);
-}
-
-int SourceDialog::getNChannels() const
-{
-    return ui->nChannelsSpinBox->value();
-}
-
-void SourceDialog::setNChannels(int value)
-{
-    ui->nChannelsSpinBox->setValue(value);
-}
-
-QString SourceDialog::getSensorId() const
-{
-    QString sensorId = ui->sensorIdLineEdit->text();
-    Q_ASSERT("Sensor Id cannot be empty!" && sensorId != "");
-
-    return sensorId;
-}
-
-void SourceDialog::setSensorId(const QString &value)
-{
-    sensorId = value;
-    ui->sensorIdLineEdit->setText(value);
-    ui->applyButton->setEnabled(true);
+    scanUSBDevices();
 }

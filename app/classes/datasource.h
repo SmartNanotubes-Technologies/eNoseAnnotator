@@ -94,7 +94,7 @@ protected:
 
     int timeout;
 
-    int nChannels;
+    int nChannels = 0;
 
     /*!
      * \brief timer triggers error handling when timed out.

@@ -18,43 +18,43 @@ public:
     explicit SourceDialog(QWidget *parent = nullptr);
     ~SourceDialog();
 
-    QString getIdentifier();
-
     DataSource::SourceType getSourceType() const;
     void setSourceType(const DataSource::SourceType &value);
 
-    void setUSBSettings(USBDataSource::Settings usbSettings);
-
-
-
-    QString getSensorId() const;
-    void setSensorId(const QString &value);
+    void setUSBSettings(USBDataSource::Settings usbSettings, int nChannels);
+    USBDataSource::Settings getUSBSettings() const;
 
     int getNChannels() const;
-    void setNChannels(int value);
 
     int getTimeout() const;
     void setTimeout(int value);
+
+protected:
+    void showEvent(QShowEvent *) override;
 
 private slots:
     void on_cancelButton_clicked();
 
     void on_applyButton_clicked();
 
-    void on_sensorIdLineEdit_textEdited(const QString &arg1);
+    void scanUSBDevices();
 
-    void on_comboBox_currentTextChanged(const QString &arg1);
+    void onSourceStatusSet(DataSource::Status newStatus);
+
+    void addSource(USBDataSource::Settings sourceSettings, int nChannels);
+
+    void on_portListComboBox_currentIndexChanged(int index);
 
 private:
     Ui::SourceDialog *ui;
 
-    USBSettingsWidget* usbWidget;
-    USBSettingsWidget* fakeWidget;
-
     DataSource::SourceType sourceType;
     QString identifier;
     QString sensorId;
-
+    int portScansStarted = 0;
+    int portScansCompleted = 0;
+    USBDataSource::Settings usbSettings, defaultSettings;
+    int nChannels = 0;
 };
 
 #endif // SETSOURCEDIALOG_H

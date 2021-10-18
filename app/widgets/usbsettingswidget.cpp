@@ -62,7 +62,8 @@ void USBSettingsWidget::fillPortsInfo()
         ui->serialPortInfoListBox->addItem(list.first(), list);
     }
 
-    ui->serialPortInfoListBox->addItem(tr("Custom"));
+
+
 }
 
 QString USBSettingsWidget::getPortName()
