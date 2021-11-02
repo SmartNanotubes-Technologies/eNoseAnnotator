@@ -1267,6 +1267,9 @@ void SensorParameterGraphWidget::addVector(uint timestamp, MVector vector, const
 {
     Q_ASSERT(dataCurves.size() == 0 || vector.sensorAttributes.size() == dataCurves.size());
 
+    if (vector.sensorAttributes.size() == 0)
+        return;
+
     // graph empty:
     // init graph
     if (dataCurves.size() == 0)
@@ -1360,6 +1363,7 @@ void SensorParameterGraphWidget::initPlot(uint timestamp, MVector vector, const 
 
     QDateTime datetime = QDateTime::fromTime_t(timestamp);
     setPrevXRange(datetime.addSecs(qRound(0.9 * LGW_AUTO_MOVE_ZONE_SIZE)), LGW_AUTO_MOVE_ZONE_SIZE);
+
 
     setupLegend(functionalisation, sensorFailures, vector.sensorAttributes.keys());
 

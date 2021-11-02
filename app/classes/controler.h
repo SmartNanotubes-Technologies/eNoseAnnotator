@@ -10,6 +10,7 @@
 #include "mvector.h"
 #include "torchclassifier.h"
 #include "classifier_definitions.h"
+#include "clouduploader.h"
 
 class ParseResult
 {
@@ -78,6 +79,7 @@ private:
     DataSource *source = nullptr;
     QThread* sourceThread = nullptr;
     TorchClassifier *classifier = nullptr;
+    CloudUploader *uploader = nullptr;
 
     InputFunctionType inputFunctionType = InputFunctionType::medianAverage;
     ParseResult parseResult;

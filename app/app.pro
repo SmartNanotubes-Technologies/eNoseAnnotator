@@ -48,6 +48,7 @@ CONFIG(debug, debug|release) {
 SOURCES += \
     classes/aclass.cpp \
     classes/annotation.cpp \
+    classes/clouduploader.cpp \
     classes/controler.cpp \
     classes/datasource.cpp \
     classes/enosecolor.cpp \
@@ -88,6 +89,7 @@ HEADERS += \
     classes/aclass.h \
     classes/annotation.h \
     classes/classifier_definitions.h \
+    classes/clouduploader.h \
     classes/controler.h \
     classes/datasource.h \
     classes/defaultSettings.h \

@@ -23,7 +23,8 @@
 Controler::Controler(QObject *parent) :
     QObject(parent),
     w(new MainWindow),
-    mData(new MeasurementData(this))
+    mData(new MeasurementData(this)),
+    uploader(new CloudUploader(this))
 {
     // declare meta types
     qRegisterMetaType<AbsoluteMVector>("AbsoluteMVector");
@@ -142,6 +143,11 @@ Controler::Controler(QObject *parent) :
 
     connect(w, &MainWindow::fitCurvesRequested, this, &Controler::fitCurves);
 
+    // login dialog
+    connect(w, &MainWindow::loginDialogRequested, this, [=](){
+        w->showLoginDialog(uploader);
+    });
+
     // window state
     connect(mData, &MeasurementData::dataChangedSet, this, &Controler::setDataChanged);
 
@@ -149,6 +155,8 @@ Controler::Controler(QObject *parent) :
     connect(&autosaveTimer, &QTimer::timeout, this, &Controler::updateAutosave);
     autosaveTimer.setSingleShot(false);
     autosaveTimer.start(static_cast<int>(autosaveIntervall * 60 * 1000));
+
+
 
 }
 
@@ -396,6 +404,10 @@ void Controler::saveData(bool forceDialog)
 
         // save dataDir
         saveDataDir();
+
+        // sync data
+        if (uploader->isLoggedIn())
+            uploader->syncFile(fileName);
     } catch (std::runtime_error e) {
         QMessageBox::critical(w, "Error saving measurement", e.what());
     }

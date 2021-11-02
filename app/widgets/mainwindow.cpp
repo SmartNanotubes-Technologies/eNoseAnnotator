@@ -829,6 +829,11 @@ void MainWindow::on_actionFlash_Firmware_triggered()
 
 void MainWindow::on_actionUpload_data_triggered()
 {
-    LoginDialog* dialog = new LoginDialog(this);
+    emit loginDialogRequested();
+}
+
+void MainWindow::showLoginDialog(CloudUploader *uploader)
+{
+    LoginDialog* dialog = new LoginDialog(uploader, this);
     dialog->exec();
 }

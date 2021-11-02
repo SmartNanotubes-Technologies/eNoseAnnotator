@@ -53,4 +53,9 @@
 // devices
 #define DEVICE_TIMEOUT 6
 
+// uploader
+#define UPLOADER_CMD_TIMEOUT 30000
+#define UPLOADER_CMD_SYNC_PERIOD 2*60000
+#define INDUSTRY_SELECTION_TEXT "Please select"
+
 #endif // DEFAULTVALUES_H

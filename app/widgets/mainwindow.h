@@ -13,6 +13,8 @@
 #include "infowidget.h"
 #include "classifierwidget.h"
 
+#include "../classes/clouduploader.h"
+
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
 QT_END_NAMESPACE
@@ -70,6 +72,8 @@ signals:
     void commentSet(QString);
     void sensorIdSet(QString);
 
+    void loginDialogRequested();
+
 public slots:
     void addVector(uint timestamp, AbsoluteMVector absoluteVector, const Functionalisation &functionalisation, const std::vector<bool> &sensorFailures);
     void setData(const QMap<uint, AbsoluteMVector> &data, const Functionalisation &functionalisation, const std::vector<bool> &sensorFailures);
@@ -101,6 +105,8 @@ public slots:
     void setTitle( QString title, bool dataChanged );
 
     void resetNChannels(uint newNChannels);
+
+    void showLoginDialog(CloudUploader *uploader);
 
 private slots:
     void on_actionSave_Data_As_triggered();

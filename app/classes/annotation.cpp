@@ -78,9 +78,23 @@ Annotation Annotation::fromString(QString string)
 
 bool Annotation::isAnnotationString(QString string)
 {
-    for (QString classString : string.split(','))
-        if (!aClass::isClassString(classString))
-            return false;
+    QStringList splitString = string.split('|');
+    if (splitString.size() > 2)
+        return false;
+
+    if (splitString.size() == 2)
+    {
+        for (QString classString : splitString[1].split(','))
+            if (!aClass::isClassString(classString))
+                return false;
+    }
+
+    if (splitString.size() > 0)
+    {
+        for (QString classString : splitString[0].split(','))
+            if (!aClass::isClassString(classString))
+                return false;
+    }
 
     return true;
 }
