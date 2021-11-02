@@ -96,10 +96,13 @@ void MainWindow::setData(const QMap<uint, AbsoluteMVector> &data, const Function
     funcLineGraph->clearGraph();
     parameterLineGraph->clearGraph();
 
+    bool plotParameters = data.first().sensorAttributes.size() > 0;
+
     absLineGraph->setReplotStatus(false);
     relLineGraph->setReplotStatus(false);
     funcLineGraph->setReplotStatus(false);
-    parameterLineGraph->setReplotStatus(false);
+    if (plotParameters)
+        parameterLineGraph->setReplotStatus(false);
 
     for (uint timestamp : data.keys())
     {
@@ -108,18 +111,21 @@ void MainWindow::setData(const QMap<uint, AbsoluteMVector> &data, const Function
         RelativeMVector relVector = data[timestamp].getRelativeVector();
         relLineGraph->addVector(timestamp, relVector, functionalisation, sensorFailures);
         funcLineGraph->addVector(timestamp, relVector.getFuncVector(functionalisation, sensorFailures), functionalisation, sensorFailures);
-        parameterLineGraph->addVector(timestamp, data[timestamp], functionalisation, sensorFailures);
+        if (plotParameters)
+            parameterLineGraph->addVector(timestamp, data[timestamp], functionalisation, sensorFailures);
     }
 
     absLineGraph->setReplotStatus(true);
     relLineGraph->setReplotStatus(true);
     funcLineGraph->setReplotStatus(true);
-    parameterLineGraph->setReplotStatus(true);
+    if (plotParameters)
+        parameterLineGraph->setReplotStatus(true);
 
     absLineGraph->zoomToData();
     relLineGraph->zoomToData();
     funcLineGraph->zoomToData();
-    parameterLineGraph->zoomToData();
+    if (plotParameters)
+        parameterLineGraph->zoomToData();
 }
 
 void MainWindow::setStatus(DataSource::Status newStatus)
@@ -834,6 +840,7 @@ void MainWindow::on_actionUpload_data_triggered()
 
 void MainWindow::showLoginDialog(CloudUploader *uploader)
 {
-    LoginDialog* dialog = new LoginDialog(uploader, this);
+    LoginDialog* dialog = new LoginDialog(uploader, this);         
+
     dialog->exec();
 }
