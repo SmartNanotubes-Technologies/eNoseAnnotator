@@ -57,6 +57,18 @@ jobs:
           7z t libtorch.zip
           7z x libtorch.zip -oapp/lib/
         shell: cmd
+        
+      - name: get fetch
+        run: |
+          $client = new-object System.Net.WebClient
+          $client.DownloadFile("https://github.com/gruntwork-io/fetch/releases/download/v0.4.2/fetch_windows_386.exe","fetch.exe")
+        
+      - name: get eNoseUploader
+        run: |
+          fetch.exe --repo="https://github.com/SmartNanotubes-Technologies/eNoseUploader" --tag="v1.0" --release-asset="eNoseUploader_Windows.zip" .
+        env: 
+          GITHUB_OAUTH_TOKEN: ${{ secrets.ACCESS_TOKEN  }}
+        shell: cmd
 
       # install qwt
       - name: Install Qwt
@@ -105,6 +117,12 @@ jobs:
          cp "${Qt5_Dir}\bin\Qt5OpenGL.dll" app/release
          cp -r app/release/* "${DEPLOY_DIR}/${DEPLOY_DIR}/bin/"
         shell: bash
+          
+      - name: Decompress eNoseUploader into release dir
+        run: |
+         7z t eNoseUploader_Windows.zip
+         7z x eNoseUploader_Windows.zip -o"%DEPLOY_DIR%/%DEPLOY_DIR%/bin
+        shell: cmd
         
       #                             #
       #     generate symbol file    #

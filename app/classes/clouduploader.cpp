@@ -1,5 +1,6 @@
 #include "clouduploader.h"
 #include <QtCore>
+#include <QMessageBox>
 #include "defaultSettings.h"
 
 CloudUploader::CloudUploader(QObject *parent) :
@@ -8,13 +9,16 @@ CloudUploader::CloudUploader(QObject *parent) :
     timeoutTimer(new QTimer(this)),
     syncTimer(new QTimer(this))
 {
+    QFileInfo uploaderCMDFileInfo;
     #if defined(Q_OS_LINUX)
-    uploaderCMD = "/home/pingu/Documents/eNoseUploader/bin/Debug/net5.0/eNoseUploaderCL";
+    uploaderCMDFileInfo.setFile("/home/pingu/Documents/eNoseUploader/bin/Debug/net5.0/eNoseUploaderCL");
     #elif defined(Q_OS_WIN)
-    uploaderCMD = "eNoseUploaderCL.exe";
+    uploaderCMDFileInfo.setFile(QCoreApplication::applicationDirPath() + "/eNoseUploader/eNoseUploaderCL.exe");
     #else
     errorMsg = "OS not supported.";
     #endif
+
+    uploaderCMD = SignUpInfo::quoteWrap(uploaderCMDFileInfo.absoluteFilePath());
 
     connect(process, &QProcess::readyReadStandardOutput, this, &CloudUploader::readStandardOutput);
     connect(process, &QProcess::readyReadStandardError, this, &CloudUploader::readStandardError);
@@ -50,7 +54,7 @@ bool CloudUploader::loginUser(QString username, QString password)
 {
     Q_ASSERT(!loggedIn);
 
-    if (runCmd(uploaderCMD + " -u '" + username + "' -p '" + password + "'", true))
+    if (runCmd(uploaderCMD + " -u " + SignUpInfo:: quoteWrap(username) + " -p " + SignUpInfo:: quoteWrap(password), true))
     {
         loggedIn = true;
         requestSync();
@@ -79,14 +83,18 @@ bool CloudUploader::registerUser(SignUpInfo signUpInfo)
 void CloudUploader::syncFile(QString filepath)
 {
     Q_ASSERT(loggedIn && "User has to be logged in in order to sync data!");
-    runCmd(uploaderCMD + " -s \"" + filepath + "\"");
+    runCmd(uploaderCMD + " -s " + SignUpInfo:: quoteWrap(filepath));
 }
 
 void CloudUploader::readStandardOutput()
-{
+{   
     QString standardOutput = process->readAllStandardOutput();
+
     cmdOutput += standardOutput;
-    qDebug() << "->" << standardOutput;
+    QString msg = "->" + cmdOutput;
+    qDebug() << msg;
+    log += msg;
+    emit commadOutputReceived(msg);
 
     for (QString line : standardOutput.split("\n"))
     {
@@ -95,19 +103,21 @@ void CloudUploader::readStandardOutput()
         if (line == "AccountNameInUse: name already in use")
             errorMsg = "Account name is already in use.";
     }
-
 }
 
 void CloudUploader::readStandardError()
 {
     QString errorOutput = process->readAllStandardError();
     cmdError += errorOutput;
-    qDebug() << "->Error: " << errorOutput;
+    QString msg  = "->Error: " + errorOutput;
+    qDebug() << msg;
+    log += msg;
+    emit commadOutputReceived(msg);
 }
 
 void CloudUploader::stopCmd()
 {
-    qDebug() << "Command timeout. Killing '" << currentCmd << "'";
+    qDebug() << "Command timeout. Killing " << SignUpInfo:: quoteWrap(currentCmd);
     if (process->state() != QProcess::NotRunning)
     {
         process->kill();
@@ -124,6 +134,11 @@ void CloudUploader::requestSync()
         runCmd(syncCommand);
 
     syncTimer->start(UPLOADER_CMD_SYNC_PERIOD);
+}
+
+QString CloudUploader::getLog() const
+{
+    return log;
 }
 
 QString CloudUploader::getErrorMsg() const
@@ -179,18 +194,22 @@ bool CloudUploader::runCmd(QString command, bool waitForFinished)
 
     #if defined(Q_OS_LINUX)
     shell = "/bin/sh";
-    arguments << "-c";
+    arguments << "-c" << command; // Linux: "-c" and command separate elements of list
+    process->setProgram(shell);
+    process->setArguments(arguments);
     #elif defined(Q_OS_WIN)
     shell = "cmd.exe";
-    arguments << "/c";
+    arguments << "/c" << SignUpInfo::quoteWrap(command);
+    process->setProgram(shell);
+    process->setNativeArguments(arguments.join(" "));
     #endif
 
-    arguments << command;
-
-    QString msg = "$ " + shell + " " + arguments.join(" ");
+    QString msg = "$ " + process->program() + " " + process->arguments().join(" ");
     qDebug() << msg;
+    log += msg;
+    emit commandExecuted(msg);
 
-    process->start(shell, arguments);
+    process->start();
     currentCmd = command;
     timeoutTimer->start(UPLOADER_CMD_TIMEOUT);
 
@@ -216,14 +235,18 @@ void CloudUploader::waitForCmdQueueFinished()
 }
 
 QStringList SignUpInfo::industryTypes =QStringList{ "Agriculture",
+                                                    "Automotive",
+                                                    "Chemistry/Materials",
                                                     "Education",
                                                     "Food",
                                                     "Health care",
+                                                    "Home Appliances",
                                                     "Manufacturing",
                                                     "Pharmaceutical",
                                                     "Safety",
                                                     "Security",
                                                     "Services",
+                                                    "Smart Living",
                                                     "Other"};
 
 SignUpInfo::SignUpInfo(QString email, QString password, QString firstName, QString lastName, QString company, QString industry)
@@ -269,17 +292,17 @@ QString SignUpInfo::getLastName() const
 QString SignUpInfo::getClArgumentString()
 {
     QStringList arguments;
-    arguments << "-u " << quoteWrap(email);
-    arguments << "-p " << quoteWrap(password);
-    arguments << "--firstName " << quoteWrap(firstName);
-    arguments << "--lastName " << quoteWrap(lastName);
-    arguments << "--company " << quoteWrap(company);
-    arguments << "--industry " << quoteWrap(industry);
+    arguments << "-u " <<  quoteWrap(email);
+    arguments << "-p " <<  quoteWrap(password);
+    arguments << "--firstName " <<  quoteWrap(firstName);
+    arguments << "--lastName " <<  quoteWrap(lastName);
+    arguments << "--company " <<  quoteWrap(company);
+    arguments << "--industry " <<  quoteWrap(industry);
 
     return arguments.join(" ");
 }
 
 QString SignUpInfo::quoteWrap(QString string)
 {
-    return ('"' + string + '"');
+    return ("\"" + string + "\"");
 }

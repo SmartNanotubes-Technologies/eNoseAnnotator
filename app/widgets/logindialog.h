@@ -11,6 +11,7 @@
 #include <QComboBox>
 #include <QTextEdit>
 #include <QCheckBox>
+#include <QPlainTextEdit>
 #include <QDialogButtonBox>
 #include <QRegularExpression>
 #include "../classes/clouduploader.h"
@@ -133,6 +134,7 @@ private slots:
     void setCursorWaiting(bool);
     void manualUpload(QStringList &files);
     void onDialogShown();
+    void addLogMsg(QString &msg);
 
 private:
     QStackedWidget* stackedWidget;
@@ -140,6 +142,7 @@ private:
     LoginWidget* loginPage;
     SignUpWidget* signUpPage;
     LoginActiveWidget* loginActivePage;
+    QPlainTextEdit* logTextBox;
     CloudUploader* uploader;
 
 protected:

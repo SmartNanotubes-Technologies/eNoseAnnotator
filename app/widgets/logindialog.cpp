@@ -15,6 +15,7 @@ LoginDialog::LoginDialog(CloudUploader *uploader, QWidget *parent):
     loginPage(new LoginWidget),
     signUpPage(new SignUpWidget),
     loginActivePage(new LoginActiveWidget),
+    logTextBox(new QPlainTextEdit),
     uploader(uploader)
 {
     setWindowTitle("Data Upload");
@@ -33,16 +34,27 @@ LoginDialog::LoginDialog(CloudUploader *uploader, QWidget *parent):
     logoLayout->addWidget(logoLabel, Qt::AlignCenter);
     logoLayout->addItem(new QSpacerItem(0,0, QSizePolicy::Expanding, QSizePolicy::Minimum));
 
+    // add pages to stacked widget
     stackedWidget->addWidget(introPage);
     stackedWidget->addWidget(loginPage);
     stackedWidget->addWidget(signUpPage);
     stackedWidget->addWidget(loginActivePage);
+
+    // add log
+    QGroupBox *logBox = new QGroupBox("Uploader Log");
+    QVBoxLayout *logBoxLayout = new QVBoxLayout;
+    logTextBox->setReadOnly(true);
+    logTextBox->appendPlainText(uploader->getLog());
+    logBoxLayout->addWidget(logTextBox);
+    logBox->setLayout(logBoxLayout);
 
     QVBoxLayout *layout = new QVBoxLayout;
     layout->addItem(new QSpacerItem(0,10, QSizePolicy::Minimum, QSizePolicy::Expanding));
     layout->addLayout(logoLayout);
     layout->addItem(new QSpacerItem(0, 30, QSizePolicy::Minimum, QSizePolicy::Minimum));
     layout->addWidget(stackedWidget);
+    layout->addItem(new QSpacerItem(0, 30, QSizePolicy::Minimum, QSizePolicy::Minimum));
+    layout->addWidget(logBox);
     layout->addItem(new QSpacerItem(0,0, QSizePolicy::Minimum, QSizePolicy::Expanding));
 
     setLayout(layout);
@@ -64,6 +76,9 @@ LoginDialog::LoginDialog(CloudUploader *uploader, QWidget *parent):
     connect(signUpPage, &SignUpWidget::showLoginRequested, this, [this](){
         stackedWidget->setCurrentWidget(loginPage);
     });
+
+    connect(uploader, &CloudUploader::commandExecuted, this, &LoginDialog::addLogMsg);
+    connect(uploader, &CloudUploader::commadOutputReceived, this, &LoginDialog::addLogMsg);
 }
 
 void LoginDialog::onDialogShown()
@@ -75,6 +90,10 @@ void LoginDialog::onDialogShown()
     }
 }
 
+void LoginDialog::addLogMsg(QString &msg)
+{
+    logTextBox->appendPlainText(msg);
+}
 
 void LoginDialog::showEvent( QShowEvent* event ) {
     QWidget::showEvent( event );
@@ -88,12 +107,14 @@ void LoginDialog::resizeWindow()
 
     int nHeight = qRound(0.8 * parent->height());
     int nWidth = qRound(4. / 3. * nHeight);
-    if (parent != nullptr)
-        setGeometry(parent->x(),
-            parent->y(),
-            nWidth, nHeight);
-    else
-        resize(nWidth, nHeight);
+//    if (parent != nullptr)
+//        setGeometry(parent->x(),
+//            parent->y(),
+//            nWidth, nHeight);
+//    else
+//        resize(nWidth, nHeight);
+
+    resize(nWidth, nHeight);
 }
 
 void LoginDialog::setCursorWaiting(bool value)
@@ -232,7 +253,7 @@ LoginWidget::LoginWidget(QWidget *parent):
     emailLabel(new QLabel("Email: ")),
     pwLabel(new QLabel("Password: ")),
     feedbackLabel(new QLabel),
-    signUpLabel(new QLabel("Don't have an account?")),
+    signUpLabel(new QLabel("Don't have an account yet?")),
     emailLineEdit(new QLineEdit),
     pwLineEdit(new QLineEdit),
     loginButton(new QPushButton("Login")),
@@ -695,12 +716,12 @@ void TextDisplayDialog::resizeWindow()
     if (parent != nullptr)
     {
         int nHeight = qRound(0.8 * parent->height());
-        int nWidth = qRound(0.8 * parent->width());
+        int nWidth = qRound(4. / 3. * nHeight);
 
-
-        setGeometry(parent->x() + parent->width()/2 - nWidth/2,
-            parent->y() + parent->height()/2 - nHeight/2,
-            nWidth, nHeight);
+        resize(nHeight, nWidth);
+//        setGeometry(parent->x() + parent->width()/2 - nWidth/2,
+//            parent->y() + parent->height()/2 - nHeight/2,
+//            nWidth, nHeight);
     }
     else
         resize(600, 450);
@@ -708,13 +729,11 @@ void TextDisplayDialog::resizeWindow()
 
 void TextDisplayDialog::loadHtml(const QString &filepath)
 {
-    try {
-        QFile file(filepath);
+    QFile file(filepath);
+    if (file.exists())
+    {
         file.open(QFile::ReadOnly | QFile::Text);
         QTextStream stream(&file);
         textBox->setHtml(stream.readAll());
-    } catch (std::runtime_error e) {
-        QMessageBox::critical(this, "Error loading html file", e.what());
     }
-
 }

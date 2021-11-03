@@ -27,7 +27,6 @@ public:
 
     QString getPythonCmd () const;
 
-
 signals:
 
 public slots:
