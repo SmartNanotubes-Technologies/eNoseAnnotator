@@ -58,9 +58,12 @@ private slots:
     void handleError(QSerialPort::SerialPortError serialPortError);
     void handleTimeout();
     void processLine(const QByteArray &line);
-    bool isDeviceInfo(QString line);
+    void processMeasValLine(QString &line);
+    void processFanLine(QString &line);
+    void processEventLine(QString &line);
+    bool isDeviceInfo(QString &line);
     void requestDeviceInfo();
-    void getChannelInfo(QString line);
+    void getChannelInfo(QString &ine);
 
 private:
     void openSerialPort();
@@ -72,6 +75,8 @@ private:
 
     QSerialPort *serial = nullptr;
     Settings settings;
+    bool measEventFlag = false;
+    bool exposureStartSet = false,  exposureEndSet = false;
     bool runningMeasFailed = false;
 
     bool emitData;

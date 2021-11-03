@@ -209,103 +209,140 @@ void USBDataSource::processLine(const QByteArray &data)
 
 //    qDebug() << line;
     if (line.startsWith("count"))
-    {
-        if (!emitData)
-            return;
+        processMeasValLine(line);
+    else if (line.startsWith("fan"))
+        processMeasValLine(line);
+    else if (line.startsWith("event"))
+        processEventLine(line);
+}
 
-        uint timestamp = QDateTime::currentDateTime().toTime_t();
+void USBDataSource::processMeasValLine(QString &line)
+{
+    if (!emitData)
+        return;
+
+    uint timestamp = QDateTime::currentDateTime().toTime_t();
 
 //        qDebug() << timestamp << ": Received new vector";
 
-        // line looks like: count=___,var1=____,var2=____,...,var64=____[,sensorAttribute=____]*
-        QStringList dataList = line.split(',');
-        QStringList valueList;
-        QMap<QString, double> parameterMap;
+    // line looks like: count=___,var1=____,var2=____,...,var64=____[,sensorAttribute=____]*
+    QStringList dataList = line.split(',');
+    QStringList valueList;
+    QMap<QString, double> parameterMap;
 
-        int count = 0;
-        for (auto element : dataList)
+    int count = 0;
+    for (auto element : dataList)
+    {
+        if (element.startsWith("count"))
         {
-            if (element.startsWith("count"))
-            {
-                count = element.split('=')[1].toInt();
-            }
-            else if (element.startsWith("var"))
-            {
-                valueList << element.split('=')[1];
-            }
-            else
-            {
-                QStringList vals = element.split('=');
-                QString parameterName = vals[0];
-
-                if (parameterName == "humidity")
-                    parameterName += "[%]";
-                else if (parameterName == "temperature")
-                    parameterName += "[°C]";
-
-                parameterMap[parameterName] = vals[1].toDouble();
-            }
+            count = element.split('=')[1].toInt();
         }
+        else if (element.startsWith("var"))
+        {
+            valueList << element.split('=')[1];
+        }
+        else
+        {
+            QStringList vals = element.split('=');
+            QString parameterName = vals[0];
 
-        // extract values
-        AbsoluteMVector vector = getVector(valueList, parameterMap);
+            if (parameterName == "humidity")
+                parameterName += "[%]";
+            else if (parameterName == "temperature")
+                parameterName += "[°C]";
 
+            parameterMap[parameterName] = vals[1].toDouble();
+        }
+    }
+
+    // extract values
+    AbsoluteMVector vector = getVector(valueList, parameterMap);
+    if (measEventFlag)
+    {
+        measEventFlag = false;
+
+        QString eventName;
+        if (!exposureStartSet)
+        {
+            eventName = "exposure start";
+            exposureStartSet = true;
+        }
+        else if (!exposureEndSet)
+        {
+            eventName = "exposure end";
+            exposureEndSet = true;
+        }
+        else
+        {
+            eventName = "measurement event";
+        }
+        aClass measEventClass = aClass(eventName);
+        aClass::staticClassSet.insert(measEventClass);
+        vector.userAnnotation = Annotation({measEventClass});
+    }
 
 //        qDebug() << vector.toString();
 
-        if (startCount == 0)    // first count
-        {
-            // reset baselevel vector
-            baselevelVectorMap.clear();
+    if (startCount == 0)    // first count
+    {
+        // reset baselevel vector
+        baselevelVectorMap.clear();
 
-            setStatus (Status::SET_BASEVECTOR);
-            startCount = count;
-            baselevelVectorMap[timestamp] = vector;
-        }
-        else if (status() == Status::SET_BASEVECTOR && count < startCount + nBaseVectors -1) // prepare baselevel
-        {
-            baselevelVectorMap[timestamp] = vector;
-        } else if (status() == Status::SET_BASEVECTOR && count == startCount + nBaseVectors -1) // set baselevel
-        {
-            baselevelVectorMap[timestamp] = vector;
+        setStatus (Status::SET_BASEVECTOR);
+        startCount = count;
+        baselevelVectorMap[timestamp] = vector;
+    }
+    else if (status() == Status::SET_BASEVECTOR && count < startCount + nBaseVectors -1) // prepare baselevel
+    {
+        baselevelVectorMap[timestamp] = vector;
+    } else if (status() == Status::SET_BASEVECTOR && count == startCount + nBaseVectors -1) // set baselevel
+    {
+        baselevelVectorMap[timestamp] = vector;
 
-            MVector baselevelVector;
+        MVector baselevelVector;
 
-            for (uint ts : baselevelVectorMap.keys())
-                baselevelVector = baselevelVector + baselevelVectorMap[ts] / baselevelVectorMap.size();
+        for (uint ts : baselevelVectorMap.keys())
+            baselevelVector = baselevelVector + baselevelVectorMap[ts] / baselevelVectorMap.size();
 
-            // set base vector
-            emit baseVectorSet(baselevelVectorMap.firstKey(), baselevelVector);
+        // set base vector
+        emit baseVectorSet(baselevelVectorMap.firstKey(), baselevelVector);
 
-            // add data
+        // add data
 //            for (uint ts : baselevelVectorMap.keys())
 //                emit vectorReceived(ts, baselevelVectorMap[ts]);
 
-        }
-        else // get vector & emit
-        {
-            if (connectionStatus != Status::RECEIVING_DATA)
-                setStatus (Status::RECEIVING_DATA);
+    }
+    else // get vector & emit
+    {
+        if (connectionStatus != Status::RECEIVING_DATA)
+            setStatus (Status::RECEIVING_DATA);
 
 //            qDebug() << "Vector Received: \n" << vector.toString();
-            emit vectorReceived(timestamp, vector);
-        }
-    } else if (line.startsWith("fan"))
-    {
-        QString valueString = line.split(":")[1];
-
-        int fanLevel;
-        if (valueString.contains("off"))
-            fanLevel = 0;
-        else
-            fanLevel = valueString.toInt();
-
-        emit fanLevelSet(fanLevel);
+        emit vectorReceived(timestamp, vector);
     }
 }
 
+void USBDataSource::processFanLine(QString &line)
+{
+    QString valueString = line.split(":")[1];
 
-bool USBDataSource::isDeviceInfo(QString line)
+    int fanLevel;
+    if (valueString.contains("off"))
+        fanLevel = 0;
+    else
+        fanLevel = valueString.toInt();
+
+    emit fanLevelSet(fanLevel);
+}
+
+void USBDataSource::processEventLine(QString &line)
+{
+    qDebug() << line;
+    // set measEventFlag
+    measEventFlag = true;
+}
+
+bool USBDataSource::isDeviceInfo(QString &line)
 {
     qDebug() << line;
     QRegularExpression infoRegex("^V(\\d+\\.\\d+\\.\\d+);(([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2}))$");
@@ -330,7 +367,7 @@ void USBDataSource::requestDeviceInfo()
     deviceInfoRequests++;
 }
 
-void USBDataSource::getChannelInfo(QString line)
+void USBDataSource::getChannelInfo(QString &line)
 {
     QRegularExpression varRegex("^var(\\d+)=.*$");
 
