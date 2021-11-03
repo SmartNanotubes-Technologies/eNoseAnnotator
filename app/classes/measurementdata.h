@@ -84,8 +84,6 @@ public:
 
     void setData (QMap<uint, AbsoluteMVector> absoluteData, QMap<uint, AbsoluteMVector> baseVectors);
 
-    void setClasslist(QList<aClass> classList);
-
     void setSensorAttributes(QStringList sensorAttributes);
 
     void setSaveFilename(QString saveFilename);
@@ -195,9 +193,6 @@ public:
     static QString getTimestampStringFromUInt(uint timestamp);
     static uint getTimestampUIntfromString (QString string);
 
-
-    QList<aClass> getClassList() const;
-
     QString getSaveFilename() const;
 
     QStringList getSensorAttributes() const;
@@ -217,6 +212,9 @@ public:
     bool getUseLimits() const;
 
     size_t nChannels() const;
+
+signals:
+    void classListChanged();
 
 public slots:
     /*
@@ -290,7 +288,6 @@ private:
     bool dataChanged = false;
     QString dataComment = "";
     QString sensorId = "";
-    QList<aClass> classList;
 
     QString savefileFormatVersion = "1.0";
 

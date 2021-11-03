@@ -48,9 +48,6 @@ Controler::Controler(QObject *parent) :
         ENoseColor::instance().setSensorFailures(sensorFailures);
     });
 
-    // init settings
-    QSettings settings(QCoreApplication::organizationName(), QCoreApplication::applicationName());
-
     // init autosave dir
     QDir temp = QDir::temp();
     QFileInfo tempInfo(temp.absolutePath());
@@ -61,7 +58,7 @@ Controler::Controler(QObject *parent) :
         autosavePath = "./.settings";
 
     if (!QDir(autosavePath).exists())
-        QDir().mkdir(autosavePath);
+        QDir().mkdir(autosavePath);    
 
     //                      //
     // make connections     //
@@ -72,6 +69,7 @@ Controler::Controler(QObject *parent) :
     connect(mData, &MeasurementData::vectorAdded, w, &MainWindow::addVector);    // add new vector to graphs
     connect(mData, &MeasurementData::dataSet, w, &MainWindow::setData);
     connect(mData, &MeasurementData::dataCleared, w, &MainWindow::clearGraphs);
+    connect(mData, &MeasurementData::classListChanged, this, &Controler::saveClassList);
 
     // failures
     connect(mData, &MeasurementData::sensorFailuresSet, w, &MainWindow::setSensorFailures);
@@ -96,7 +94,6 @@ Controler::Controler(QObject *parent) :
 
     connect(mData, &MeasurementData::selectionVectorChanged, w, &MainWindow::setSelectionVector);
     connect(mData, &MeasurementData::selectionCleared, w, &MainWindow::clearSelectionVector);
-
 
     // info widget connections:
     connect(w, &MainWindow::sensorFailureDialogRequested, [this](){
@@ -156,8 +153,7 @@ Controler::Controler(QObject *parent) :
     autosaveTimer.setSingleShot(false);
     autosaveTimer.start(static_cast<int>(autosaveIntervall * 60 * 1000));
 
-
-
+    loadSettings();
 }
 
 Controler::~Controler()
@@ -299,8 +295,8 @@ void Controler::loadSettings()
         initSettings();
 
     // load directory paths
-    QString dataDir = settings.value(DATA_DIR_KEY, DEFAULT_DATA_DIR).value<QString>();
-    mData->setSaveFilename(dataDir);
+//    QString dataDir = settings.value(DATA_DIR_KEY, DEFAULT_DATA_DIR).value<QString>();
+//    mData->setSaveFilename(dataDir);
 
     // load general settings
     bool useLimits = settings.value(USE_LIMITS_KEY, DEFAULT_USE_LIMITS).toBool();
@@ -308,6 +304,12 @@ void Controler::loadSettings()
     int upperLimit = settings.value(UPPER_LIMIT_KEY, DEFAULT_UPPER_LIMIT).toInt();
 
     mData->setLimits(lowerLimit, upperLimit, useLimits);
+
+    // load classList
+    QString classListString = settings.value(SMELL_LIST_KEY, DEFAULT_SMELL_LIST).toString();
+    QStringList classList = classListString.split(SMELL_SEPARATOR);
+    for (QString className : classList)
+        aClass::staticClassSet.insert(className);
 }
 
 void Controler::initSettings()
@@ -317,6 +319,18 @@ void Controler::initSettings()
     setGeneralSettings();
 
     settings.setValue("settingsInitialised", true);
+}
+
+void Controler::saveClassList()
+{
+    QSettings settings(QCoreApplication::organizationName(), QCoreApplication::applicationName());
+
+    QStringList classNames;
+    for (aClass aclass : aClass::staticClassSet)
+        classNames << aclass.getName();
+
+    QString classListString = classNames.join(SMELL_SEPARATOR);
+    settings.setValue(SMELL_LIST_KEY, classListString);
 }
 
 void Controler::setGeneralSettings()
@@ -491,6 +505,9 @@ void Controler::loadData(QString fileName)
         int nFuncs = newData->getFunctionalisation().getNFuncs();
         nFuncs = nFuncs == 1 ? MVector::nChannels : nFuncs;
 
+        mData->clear();
+        w->setSelectionActionsEnabled(false);
+        w->clearGraphs();
         mData->copyFrom(newData);
 
         // update title of MainWindow

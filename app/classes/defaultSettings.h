@@ -58,4 +58,9 @@
 #define UPLOADER_CMD_SYNC_PERIOD 2*60000
 #define INDUSTRY_SELECTION_TEXT "Please select"
 
+//
+#define SMELL_LIST_KEY "settings/smells"
+#define DEFAULT_SMELL_LIST "No Smell"
+#define SMELL_SEPARATOR ";"
+
 #endif // DEFAULTVALUES_H

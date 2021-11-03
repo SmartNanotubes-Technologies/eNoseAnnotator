@@ -56,6 +56,7 @@ public slots:
     void loadAutosave();
     void loadSettings();
     void initSettings();
+    void saveClassList();
 
     void saveData();
     void saveData(bool forceDialog);

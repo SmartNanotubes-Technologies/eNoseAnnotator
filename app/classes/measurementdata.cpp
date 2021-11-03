@@ -26,9 +26,6 @@ MeasurementData::MeasurementData(QObject *parent, size_t nChannels) :
     // zero init info
     setComment("");
     setSensorId("");
-
-    // init class list
-    classList = aClass::staticClassSet.toList();
 }
 
 MeasurementData::~MeasurementData()
@@ -205,15 +202,6 @@ void MeasurementData::setData(QMap<uint, AbsoluteMVector> absoluteData, QMap<uin
     replotStatus = true;
 }
 
-void MeasurementData::setClasslist(QList<aClass> newClassList)
-{
-    classList.clear();
-    aClass::staticClassSet.clear();
-
-    for (aClass aclass : newClassList)
-        addClass(aclass);
-}
-
 void MeasurementData::setSensorAttributes(QStringList newSensorAttributes)
 {
     sensorAttributes.clear();
@@ -328,11 +316,6 @@ void MeasurementData::setBaseVector(uint timestamp, AbsoluteMVector baseVector)
         setDataChanged(true);
 //        qDebug() << "New baselevel at " << timestamp << ":\n" << baseLevelMap[timestamp].toString();
     }
-}
-
-QList<aClass> MeasurementData::getClassList() const
-{
-    return classList;
 }
 
 Functionalisation MeasurementData::getFunctionalisation() const
@@ -516,8 +499,15 @@ bool MeasurementData::saveData(QString filename, QMap<uint, MVector> map)
     // classes
     out << "#classes:";
     QStringList classStringList;
-    for (aClass c : classList)
-        classStringList << c.toString();
+    for (uint timestamp : data.keys())
+    {
+        for (aClass aclass : data[timestamp].userAnnotation.getClasses())
+            if (!classStringList.contains(aclass.getName()))
+                classStringList << aclass.getName();
+        for (aClass aclass : data[timestamp].detectedAnnotation.getClasses())
+            if (!classStringList.contains(aclass.getName()))
+                classStringList << aclass.getName();
+    }
     out << classStringList.join(";") << "\n";
 
     // write header
@@ -758,7 +748,6 @@ void MeasurementData::copyFrom(MeasurementData *otherMData)
     resetNChannels();
 
     // meta data
-    setClasslist(otherMData->getClassList());
     setSensorAttributes(otherMData->getSensorAttributes());
     setSaveFilename(otherMData->getSaveFilename());
     setComment(otherMData->getComment());
@@ -1066,9 +1055,7 @@ void MeasurementData::addClass(aClass newClass)
 
     // add to static aClass map
     aClass::staticClassSet << newClass;
-
-    // add internally
-    classList << newClass;
+    emit classListChanged();
 
     setDataChanged(true);
 }
@@ -1096,6 +1083,8 @@ void MeasurementData::removeClass(aClass oldClass)
             detectedAnnotationChangedMap[timestamp] = data[timestamp].detectedAnnotation;
         }
     }
+
+    emit classListChanged();
 
     setDataChanged(true);
 
@@ -1135,6 +1124,8 @@ void MeasurementData::changeClass(aClass oldClass, aClass newClass)
             detectedAnnotationChangedMap[timestamp] = data[timestamp].detectedAnnotation;
         }
     }
+
+    emit classListChanged();
 
     setDataChanged(true);
 
@@ -1546,7 +1537,7 @@ void AnnotatorFileReader::parseHeader(QString line)
                 throw std::runtime_error("Error in line " + std::to_string(lineCount+1) + ".\n" + classString.toStdString() + " is not a class string!");
             aClass c = aClass::fromString(classString);
 
-            if (!data->getClassList().contains(c))
+            if (!aClass::staticClassSet.contains(c))
                 data->addClass(c);
         }
     }

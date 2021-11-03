@@ -67,7 +67,6 @@ SOURCES += \
     main.cpp \
     widgets/acirclewidget.cpp \
     widgets/addattributedialog.cpp \
-    widgets/attributeeditor.cpp \
     widgets/bargraphwidget.cpp \
     widgets/classifierwidget.cpp \
     widgets/classinputdialog.cpp \
@@ -107,7 +106,6 @@ HEADERS += \
     lib/spoiler.h \
     widgets/acirclewidget.h \
     widgets/addattributedialog.h \
-    widgets/attributeeditor.h \
     widgets/bargraphwidget.h \
     widgets/classifierwidget.h \
     widgets/classinputdialog.h \
@@ -130,7 +128,6 @@ HEADERS += \
 FORMS += \
     widgets/acirclewidget.ui \
     widgets/addattributedialog.ui \
-    widgets/attributeeditor.ui \
     widgets/classifierwidget.ui \
     widgets/classselector.ui \
     widgets/generalsettings.ui \

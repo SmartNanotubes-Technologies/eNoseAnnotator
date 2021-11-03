@@ -108,6 +108,9 @@ public slots:
 
     void showLoginDialog(CloudUploader *uploader);
 
+    void setSelectionActionsEnabled(bool selectionMade);
+
+
 private slots:
     void on_actionSave_Data_As_triggered();
 
@@ -150,8 +153,6 @@ private slots:
     void on_actionFit_curve_triggered();
 
     void redrawFuncGraph(const QMap<uint, AbsoluteMVector> &data, const Functionalisation &functionalisation, const std::vector<bool> &sensorFailures);
-
-    void setSelectionActionsEnabled(bool selectionMade);
 
     void saveLineGraphImage(LineGraphWidget *graph);
     void saveBarGraphImage(AbstractBarGraphWidget *graph);
