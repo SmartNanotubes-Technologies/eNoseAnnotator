@@ -450,7 +450,6 @@ void Controler::saveAsLabviewFile()
     } catch (std::runtime_error e) {
         QMessageBox::critical(w, "Error exporting measurement", e.what());
     }
-
 }
 
 void Controler::loadData()

@@ -457,7 +457,7 @@
   </action>
   <action name="actionUpload_data">
    <property name="text">
-    <string>Upload data</string>
+    <string>Data Upload</string>
    </property>
   </action>
  </widget>

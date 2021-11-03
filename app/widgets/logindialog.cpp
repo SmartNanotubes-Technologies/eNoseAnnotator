@@ -4,18 +4,23 @@
 #include <QGroupBox>
 #include <QCursor>
 #include <QFileDialog>
+#include <QTextStream>
+#include <QMessageBox>
 #include "../classes/defaultSettings.h"
 
 LoginDialog::LoginDialog(CloudUploader *uploader, QWidget *parent):
     QDialog(parent),
     stackedWidget(new QStackedWidget),
+    introPage(new IntroWidget),
     loginPage(new LoginWidget),
     signUpPage(new SignUpWidget),
     loginActivePage(new LoginActiveWidget),
     uploader(uploader)
 {
+    setWindowTitle("Data Upload");
     resizeWindow();
 
+    // create layout
     QHBoxLayout *logoLayout = new QHBoxLayout;
     QLabel* logoLabel = new QLabel;
     logoLabel->setPixmap(QPixmap(":/logos/web_logo"));
@@ -28,30 +33,41 @@ LoginDialog::LoginDialog(CloudUploader *uploader, QWidget *parent):
     logoLayout->addWidget(logoLabel, Qt::AlignCenter);
     logoLayout->addItem(new QSpacerItem(0,0, QSizePolicy::Expanding, QSizePolicy::Minimum));
 
+    stackedWidget->addWidget(introPage);
     stackedWidget->addWidget(loginPage);
     stackedWidget->addWidget(signUpPage);
     stackedWidget->addWidget(loginActivePage);
 
     QVBoxLayout *layout = new QVBoxLayout;
-    layout->addItem(new QSpacerItem(0,0, QSizePolicy::Minimum, QSizePolicy::Expanding));
+    layout->addItem(new QSpacerItem(0,10, QSizePolicy::Minimum, QSizePolicy::Expanding));
     layout->addLayout(logoLayout);
-    layout->addItem(new QSpacerItem(0, 50, QSizePolicy::Minimum, QSizePolicy::Minimum));
+    layout->addItem(new QSpacerItem(0, 30, QSizePolicy::Minimum, QSizePolicy::Minimum));
     layout->addWidget(stackedWidget);
     layout->addItem(new QSpacerItem(0,0, QSizePolicy::Minimum, QSizePolicy::Expanding));
 
     setLayout(layout);
 
-    connect(loginPage, &LoginWidget::showPage, stackedWidget, &QStackedWidget::setCurrentIndex);
-    connect(signUpPage, &SignUpWidget::showPage, stackedWidget, &QStackedWidget::setCurrentIndex);
-    connect(loginActivePage, &LoginActiveWidget::showPage, stackedWidget, &QStackedWidget::setCurrentIndex);
+    // connections
+    connect(introPage, &IntroWidget::nextRequested, this, [this](){
+        stackedWidget->setCurrentWidget(loginPage);
+    });
 
+    connect(loginPage, &LoginWidget::showSignUpRequested, this, [this](){
+        stackedWidget->setCurrentWidget(signUpPage);
+    });
     connect(loginPage, &LoginWidget::loginRequested, this, &LoginDialog::tryLogin);
-    connect(loginActivePage, &LoginActiveWidget::logoutRequested, this, &LoginDialog::tryLogout);
-    connect(signUpPage, &SignUpWidget::signUpRequested, this, &LoginDialog::trySignUp);
 
+    connect(loginActivePage, &LoginActiveWidget::logoutRequested, this, &LoginDialog::tryLogout);
     connect(loginActivePage, &LoginActiveWidget::manualUploadRequested, this, &LoginDialog::manualUpload);
 
+    connect(signUpPage, &SignUpWidget::signUpRequested, this, &LoginDialog::trySignUp);
+    connect(signUpPage, &SignUpWidget::showLoginRequested, this, [this](){
+        stackedWidget->setCurrentWidget(loginPage);
+    });
+}
 
+void LoginDialog::onDialogShown()
+{
     if (uploader->isLoggedIn())
     {
         loginActivePage->setEmail(uploader->getEmail());
@@ -59,14 +75,22 @@ LoginDialog::LoginDialog(CloudUploader *uploader, QWidget *parent):
     }
 }
 
+
+void LoginDialog::showEvent( QShowEvent* event ) {
+    QWidget::showEvent( event );
+    QTimer::singleShot(20, this, &LoginDialog::onDialogShown);
+}
+
+
 void LoginDialog::resizeWindow()
 {
     QWidget* parent = static_cast<QWidget*>(this->parent());
-    int nWidth = 800;
-    int nHeight = 600;
+
+    int nHeight = qRound(0.8 * parent->height());
+    int nWidth = qRound(4. / 3. * nHeight);
     if (parent != nullptr)
-        setGeometry(parent->x() + parent->width()/2 - nWidth/2,
-            parent->y() + parent->height()/2 - nHeight/2,
+        setGeometry(parent->x(),
+            parent->y(),
             nWidth, nHeight);
     else
         resize(nWidth, nHeight);
@@ -96,27 +120,6 @@ void LoginDialog::manualUpload(QStringList &files)
     }
     setCursorWaiting(false);
     loginActivePage->setFeedbackLabel("Marked " + QString::number(files.size()) + " to be uploaded.");
-}
-
-void LoginDialog::setUploaderMsg(QString msg)
-{
-
-}
-
-void LoginDialog::setSyncFinished(QString filename, bool success)
-{
-
-}
-
-void LoginActiveWidget::showManualUpload()
-{
-    QStringList files = QFileDialog::getOpenFileNames(
-                            this,
-                            "Select one or more files to upload",
-                            "", // TODO: default dir
-                            "Measurement Files (*.csv)");
-
-    emit manualUploadRequested(files);
 }
 
 void LoginDialog::tryLogin(QString username, QString password)
@@ -187,11 +190,49 @@ void LoginDialog::trySignUp(SignUpInfo signUpInfo)
     }
 }
 
+IntroWidget::IntroWidget(QWidget *parent):
+    QWidget(parent),
+    textLabel(new QLabel),
+    nextButton(new QPushButton("Next"))
+{
+    textLabel->setWordWrap(true);
+    QString msg =
+        "You can now create an account in the eNoseAnnotator! When you are logged in, all new measurements taken are uploaded automatically. You can also manually upload old measurements.\n"\
+        "Uploading your measurements will enable us to analyse them. This will help us to improve the Smell Inspector and its recognition system.\n"\
+        ;   // TODO
+    textLabel->setText(msg);
+
+    // set up layout
+    QHBoxLayout *buttonLayout = new QHBoxLayout;
+    buttonLayout->addItem(new QSpacerItem(10,10, QSizePolicy::Expanding, QSizePolicy::Minimum));
+    buttonLayout->addWidget(nextButton);
+
+    QVBoxLayout *vLayout = new QVBoxLayout;
+    vLayout->addWidget(textLabel);
+    vLayout->addItem(new QSpacerItem(10,10, QSizePolicy::Minimum, QSizePolicy::Expanding));
+    vLayout->addLayout(buttonLayout);
+
+    QHBoxLayout *hLayout = new QHBoxLayout;
+    hLayout->addItem(new QSpacerItem(70, 10, QSizePolicy::Minimum, QSizePolicy::Minimum));
+    hLayout->addLayout(vLayout);
+    hLayout->addItem(new QSpacerItem(70, 10, QSizePolicy::Minimum, QSizePolicy::Minimum));
+
+    QVBoxLayout *layout = new QVBoxLayout;
+    layout->addLayout(hLayout);
+    layout->addItem(new QSpacerItem(10,10, QSizePolicy::Minimum, QSizePolicy::Expanding));
+
+    setLayout(layout);
+
+    // connections
+    connect(nextButton, &QPushButton::clicked, this, &IntroWidget::nextRequested);
+}
+
 LoginWidget::LoginWidget(QWidget *parent):
     QWidget(parent),
     emailLabel(new QLabel("Email: ")),
     pwLabel(new QLabel("Password: ")),
     feedbackLabel(new QLabel),
+    signUpLabel(new QLabel("Don't have an account?")),
     emailLineEdit(new QLineEdit),
     pwLineEdit(new QLineEdit),
     loginButton(new QPushButton("Login")),
@@ -210,6 +251,7 @@ LoginWidget::LoginWidget(QWidget *parent):
 
     QHBoxLayout *signUpLayout = new QHBoxLayout;
     signUpLayout->addItem(new QSpacerItem(10,10, QSizePolicy::Expanding, QSizePolicy::Minimum));
+    signUpLayout->addWidget(signUpLabel);
     signUpLayout->addWidget(signUpButton);
     signUpButton->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Minimum);
 
@@ -219,6 +261,7 @@ LoginWidget::LoginWidget(QWidget *parent):
     loginFormlayout->addLayout(pwLayout);
     loginFormlayout->addWidget(feedbackLabel);
     loginFormlayout->addWidget(loginButton);
+    loginFormlayout->addItem(new QSpacerItem(10,10, QSizePolicy::Minimum, QSizePolicy::Minimum));
     loginFormlayout->addLayout(signUpLayout);
     loginBox->setLayout(loginFormlayout);
 
@@ -234,7 +277,7 @@ LoginWidget::LoginWidget(QWidget *parent):
     setLayout(layout);
 
     connect(signUpButton, &QPushButton::clicked, this, [this](){
-        emit showPage(1);
+        emit showSignUpRequested();
     });
     connect(loginButton, &QPushButton::clicked, this, &LoginWidget::tryLogin);
 }
@@ -288,12 +331,15 @@ SignUpWidget::SignUpWidget(QWidget *parent):
     companyLabel(new QLabel("Company: ")),
     firstNameLabel(new QLabel("First Name: ")),
     lastNameLabel(new QLabel("Last Name: ")),
+    loginlabel(new QLabel("Already have an account?")),
+    toclabel(new QLabel("I accept the <a href='toc'>Terms and Conditions</a> and <a href='privacy'>Privacy Policy</a>.")),  // TODO
     emailLineEdit(new QLineEdit),
     pw1LineEdit(new QLineEdit),
     pw2LineEdit(new QLineEdit),
     companyLineEdit(new QLineEdit),
     firstNameLineEdit(new QLineEdit),
     lastNameLineEdit(new QLineEdit),
+    tocCheckBox(new QCheckBox),
     loginButton(new QPushButton("Login")),
     signUpButton(new QPushButton("Sign up")),
     industryCombobox(new QComboBox)
@@ -344,8 +390,14 @@ SignUpWidget::SignUpWidget(QWidget *parent):
     lastNameLayout->addWidget(lastNameLineEdit);
     lastNameLabel->setMinimumSize(130, 25);
 
+    QHBoxLayout *tocLayout = new QHBoxLayout;
+    tocLayout->addItem(new QSpacerItem(10,10, QSizePolicy::Expanding, QSizePolicy::Minimum));
+    tocLayout->addWidget(toclabel);
+    tocLayout->addWidget(tocCheckBox);
+
     QHBoxLayout *loginLayout = new QHBoxLayout;
     loginLayout->addItem(new QSpacerItem(10,10, QSizePolicy::Expanding, QSizePolicy::Minimum));
+    loginLayout->addWidget(loginlabel);
     loginLayout->addWidget(loginButton);
     loginButton->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Minimum);
 
@@ -358,9 +410,11 @@ SignUpWidget::SignUpWidget(QWidget *parent):
     signUpFormlayout->addLayout(industryLayout);
     signUpFormlayout->addLayout(pw1Layout);
     signUpFormlayout->addLayout(pw2Layout);
-    signUpFormlayout->addWidget(feedbackLabel);
+    signUpFormlayout->addItem(new QSpacerItem(10,10, QSizePolicy::Minimum, QSizePolicy::Minimum));
+    signUpFormlayout->addLayout(tocLayout);
     signUpFormlayout->addWidget(feedbackLabel);
     signUpFormlayout->addWidget(signUpButton);
+    signUpFormlayout->addItem(new QSpacerItem(10,10, QSizePolicy::Minimum, QSizePolicy::Minimum));
     signUpFormlayout->addLayout(loginLayout);
     signUpBox->setLayout(signUpFormlayout);
 
@@ -370,16 +424,15 @@ SignUpWidget::SignUpWidget(QWidget *parent):
     hLayout->addItem(new QSpacerItem(70, 10, QSizePolicy::Minimum, QSizePolicy::Minimum));
 
     QVBoxLayout *layout = new QVBoxLayout;
-    layout->addItem(new QSpacerItem(10,10, QSizePolicy::Minimum, QSizePolicy::Expanding));
     layout->addLayout(hLayout);
-    layout->addItem(new QSpacerItem(10,10, QSizePolicy::Minimum, QSizePolicy::Expanding));
 
     setLayout(layout);
 
     connect(signUpButton, &QPushButton::clicked, this, &SignUpWidget::trySignUp);
     connect(loginButton, &QPushButton::clicked, this, [this](){
-        emit showPage(0);
+        emit showLoginRequested();
     });
+    connect(toclabel, &QLabel::linkActivated, this, &SignUpWidget::onTOCLinkClicked);
 }
 
 void SignUpWidget::clear()
@@ -413,31 +466,41 @@ void SignUpWidget::setFeedback(QString msg)
 void SignUpWidget::trySignUp()
 {
     QString email = emailLineEdit->text();
-    if (!isEmailValid(email))
-        return;
-
     QString firstName = firstNameLineEdit->text();
-    if (!isFirstNameValid(firstName))
-        return;
-
     QString lastName = lastNameLineEdit->text();
-    if (!isLastNameValid(lastName))
-        return;
-
     QString company = companyLineEdit->text();
-    if (!isCompanyValid(company))
-        return;
-
     QString industry = industryCombobox->currentText();
-    if (!isIndustryValid(industry))
-        return;
-
     QString password1 = pw1LineEdit->text();
     QString password2 = pw2LineEdit->text();
-    if (!isPasswordValid(password1, password2))
-        return;
 
-    emit signUpRequested(SignUpInfo(email, password1, firstName, lastName, company, industry));
+    bool tocValid = isTOCValid(tocCheckBox->isChecked());
+    bool industryValid = isIndustryValid(industry);
+    bool companyValid = isCompanyValid(company);
+    bool lastNameValid = isLastNameValid(lastName);
+    bool firstNameValid = isFirstNameValid(firstName);
+    bool passwordValid = isPasswordValid(password1, password2);
+    bool emailValid = isEmailValid(email);
+    bool isValid =  tocValid &&
+                    companyValid &&
+                    industryValid &&
+                    passwordValid &&
+                    lastNameValid &&
+                    firstNameValid &&
+                    passwordValid &&
+                    emailValid;
+
+    if (isValid)
+    {
+        feedbackLabel->setText("");
+        emit signUpRequested(SignUpInfo(email, password1, firstName, lastName, company, industry));
+    }
+}
+
+void SignUpWidget::onTOCLinkClicked(const QString &link)
+{
+    TextDisplayDialog textDialog;
+    textDialog.loadHtml(link);
+    textDialog.show();
 }
 
 bool SignUpWidget::isEmailValid(QString email)
@@ -447,12 +510,11 @@ bool SignUpWidget::isEmailValid(QString email)
     if(!emailMatch.hasMatch())
     {
         emailLabel->setStyleSheet("QLabel { color: red;}");
-        feedbackLabel->setText("Please provide a valid email addresse.");
+        feedbackLabel->setText("Please provide a valid email address.");
         return false;
     }
 
     emailLabel->setStyleSheet("QLabel { color: black;}");
-    feedbackLabel->setText("");
 
     return true;
 }
@@ -480,14 +542,12 @@ bool SignUpWidget::isPasswordValid(QString pw1, QString pw2)
         return false;
     }
     pw2Label->setStyleSheet("QLabel { color: black;}");
-    feedbackLabel->setText("");
     return true;
 }
 
 bool SignUpWidget::isCompanyValid(QString company)
 {
     companyLabel->setStyleSheet("QLabel { color: black;}");
-    feedbackLabel->setText("");
     return true;
 }
 
@@ -500,7 +560,6 @@ bool SignUpWidget::isIndustryValid(QString industry)
         return false;
     }
     industryLabel->setStyleSheet("QLabel { color: black;}");
-    feedbackLabel->setText("");
     return true;
 }
 
@@ -513,7 +572,6 @@ bool SignUpWidget::isFirstNameValid(QString firstName)
         return false;
     }
     firstNameLabel->setStyleSheet("QLabel { color: black;}");
-    feedbackLabel->setText("");
     return true;
 }
 
@@ -526,7 +584,19 @@ bool SignUpWidget::isLastNameValid(QString lastName)
         return false;
     }
     lastNameLabel->setStyleSheet("QLabel { color: black;}");
-    feedbackLabel->setText("");
+    return true;
+}
+
+bool SignUpWidget::isTOCValid(bool tocAccepted)
+{
+    if (!tocAccepted)
+    {
+        toclabel->setStyleSheet("QLabel { color: red;}");
+        feedbackLabel->setText("You have to accept the Terms and Conditions and the Privavy Policy.");
+        return false;
+    }
+
+    toclabel->setStyleSheet("QLabel { color: black;}");
     return true;
 }
 
@@ -589,3 +659,62 @@ void LoginActiveWidget::logout()
     emit logoutRequested();
 }
 
+void LoginActiveWidget::showManualUpload()
+{
+    QStringList files = QFileDialog::getOpenFileNames(
+                            this,
+                            "Select one or more files to upload",
+                            "", // TODO: default dir
+                            "Measurement Files (*.csv)");
+
+    emit manualUploadRequested(files);
+}
+
+TextDisplayDialog::TextDisplayDialog(QString boxText, QWidget *parent):
+    QDialog(parent),
+    buttonBox(new QDialogButtonBox(QDialogButtonBox::Ok)),
+    textBox(new QTextEdit(boxText))
+{
+    textBox->setReadOnly(true);
+
+    QVBoxLayout *layout = new QVBoxLayout;
+    layout->addWidget(textBox);
+    layout->addWidget(buttonBox);
+
+    setLayout(layout);
+
+    resizeWindow();
+
+    connect(buttonBox, &QDialogButtonBox::accepted, this, &QDialog::accept);
+}
+
+void TextDisplayDialog::resizeWindow()
+{
+    QWidget* parent = static_cast<QWidget*>(this->parent());
+
+    if (parent != nullptr)
+    {
+        int nHeight = qRound(0.8 * parent->height());
+        int nWidth = qRound(0.8 * parent->width());
+
+
+        setGeometry(parent->x() + parent->width()/2 - nWidth/2,
+            parent->y() + parent->height()/2 - nHeight/2,
+            nWidth, nHeight);
+    }
+    else
+        resize(600, 450);
+}
+
+void TextDisplayDialog::loadHtml(const QString &filepath)
+{
+    try {
+        QFile file(filepath);
+        file.open(QFile::ReadOnly | QFile::Text);
+        QTextStream stream(&file);
+        textBox->setHtml(stream.readAll());
+    } catch (std::runtime_error e) {
+        QMessageBox::critical(this, "Error loading html file", e.what());
+    }
+
+}
