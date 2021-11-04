@@ -153,7 +153,7 @@ Controler::Controler(QObject *parent) :
     autosaveTimer.setSingleShot(false);
     autosaveTimer.start(static_cast<int>(autosaveIntervall * 60 * 1000));
 
-    loadSettings();
+    QTimer::singleShot(20, this, &Controler::loadSettings);
 }
 
 Controler::~Controler()
@@ -291,8 +291,8 @@ void Controler::loadSettings()
 
     //    qDebug() << "Settings keys before loading:\n" << settings->allKeys().join("; ");
 
-    if (!settings.contains("settingsInitialised"))
-        initSettings();
+//    if (!settings.contains("settingsInitialised"))
+//        initSettings();
 
     // load directory paths
 //    QString dataDir = settings.value(DATA_DIR_KEY, DEFAULT_DATA_DIR).value<QString>();
