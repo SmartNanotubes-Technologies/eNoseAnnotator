@@ -45,6 +45,7 @@ private slots:
     void handleButtonBoxClick(QAbstractButton *button);
 
 protected:
+    void showEvent(QShowEvent *) override;
 
 private:
     QLineEdit *pythonDirLineEdit, *pythonCmdLineEdit, *firmwareBinaryLineEdit;
@@ -58,6 +59,7 @@ private:
     bool cmdRunning = false, printOutput = true;
     bool flashingFirmware = false;
     bool settingsReset = false;
+    bool pythonSet = false;
 };
 
 #endif // FLASHWIDGET_H

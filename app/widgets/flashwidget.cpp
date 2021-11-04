@@ -100,6 +100,13 @@ FlashDialog::FlashDialog(QWidget *parent) :
     connect(buttonBox, &QDialogButtonBox::clicked, this, &FlashDialog::handleButtonBoxClick);
 }
 
+
+void FlashDialog::showEvent( QShowEvent* event ) {
+    QWidget::showEvent( event );
+    if (!pythonSet)
+        QTimer::singleShot(300, this, &FlashDialog::detectPython);
+}
+
 void FlashDialog::setIdentifier(QString identifier)
 {
     usbSettingsWidget->setPortName(identifier);
@@ -131,6 +138,7 @@ void FlashDialog::detectPython()
 
 void FlashDialog::setPython(QString pythonDir, QString pythonCmd)
 {
+    pythonSet = true;
     textDisplay->appendPlainText("--- Setting up esptool ---\n");
     espFlasher->setPythonDir(pythonDir);
     pythonDirLineEdit->setText(pythonDir);
@@ -138,7 +146,7 @@ void FlashDialog::setPython(QString pythonDir, QString pythonCmd)
     espFlasher->setPythonCmd(pythonCmd);
     pythonCmdLineEdit->setText(pythonCmd);
 
-    checkSettings();
+    QTimer::singleShot(300, this, &FlashDialog::checkSettings);
 }
 
 void FlashDialog::checkSettings()

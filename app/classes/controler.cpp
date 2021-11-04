@@ -790,9 +790,6 @@ void Controler::openFlashDialog()
     if (!pythonCmd.isEmpty())
     {
         flashDialog.setPython(pythonDir, pythonCmd);
-    } else
-    {
-        flashDialog.detectPython();
     }
 
     if (source != nullptr)
