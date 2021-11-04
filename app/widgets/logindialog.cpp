@@ -6,6 +6,9 @@
 #include <QFileDialog>
 #include <QTextStream>
 #include <QMessageBox>
+#include <QSettings>
+#include <QCoreApplication>
+
 #include "../classes/defaultSettings.h"
 
 LoginDialog::LoginDialog(CloudUploader *uploader, QWidget *parent):
@@ -47,6 +50,10 @@ LoginDialog::LoginDialog(CloudUploader *uploader, QWidget *parent):
     logTextBox->appendPlainText(uploader->getLog());
     logBoxLayout->addWidget(logTextBox);
     logBox->setLayout(logBoxLayout);
+
+    QSettings settings(QCoreApplication::organizationName(), QCoreApplication::applicationName());
+    bool showLog = settings.value(SHOW_UPLOAD_LOG_KEY, SHOW_UPLOAD_LOG_DEFAULT).toBool();
+    logBox->setVisible(showLog);
 
     QVBoxLayout *layout = new QVBoxLayout;
     layout->addItem(new QSpacerItem(0,10, QSizePolicy::Minimum, QSizePolicy::Expanding));

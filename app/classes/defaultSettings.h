@@ -57,8 +57,12 @@
 #define UPLOADER_CMD_TIMEOUT 30000
 #define UPLOADER_CMD_SYNC_PERIOD 2*60000
 #define INDUSTRY_SELECTION_TEXT "Please select"
+#define SHOW_UPLOAD_FEATURE_KEY "settings/show_upload"
+#define SHOW_UPLOAD_FEATURE_DEFAULT false
+#define SHOW_UPLOAD_LOG_KEY "settings/show_upload_log"
+#define SHOW_UPLOAD_LOG_DEFAULT false
 
-//
+// smell annotations
 #define SMELL_LIST_KEY "settings/smells"
 #define DEFAULT_SMELL_LIST "No Smell"
 #define SMELL_SEPARATOR ";"

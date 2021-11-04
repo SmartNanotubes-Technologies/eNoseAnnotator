@@ -61,6 +61,10 @@ MainWindow::MainWindow(QWidget *parent)
     connect(measInfoWidget, &InfoWidget::mCommentChanged, this, &MainWindow::commentTextChanged);
     connect (this, &MainWindow::commentSet, measInfoWidget, &InfoWidget::setComment);
     connect (this, &MainWindow::sensorIdSet, measInfoWidget, &InfoWidget::setSensorId);
+
+    QSettings settings(QCoreApplication::organizationName(), QCoreApplication::applicationName());
+    bool showUpload = settings.value(SHOW_UPLOAD_FEATURE_KEY, SHOW_UPLOAD_FEATURE_DEFAULT).toBool();
+    ui->actionUpload_data->setVisible(showUpload);
 }
 
 MainWindow::~MainWindow()
