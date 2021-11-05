@@ -3,13 +3,12 @@ VERSION = 0.1.0
 
 # Need to discard STDERR so get path to NULL device
 win32 {
+    BASE_GIT_COMMAND = C:\Program Files\Git\bin\git.exe
     NULL_DEVICE = NUL # Windows doesn't have /dev/null but has NUL
 } else {
+    BASE_GIT_COMMAND = git
     NULL_DEVICE = /dev/null
 }
-
-# Need to call git with manually specified paths to repository
-BASE_GIT_COMMAND = git
 
 # get last annotated tag
 GIT_VERSION = $$system($$BASE_GIT_COMMAND describe 2> $$NULL_DEVICE)
