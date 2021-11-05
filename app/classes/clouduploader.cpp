@@ -35,9 +35,9 @@ CloudUploader::CloudUploader(QObject *parent) :
 
 CloudUploader::~CloudUploader()
 {
-    process->waitForFinished(60000);
-    if (process->state() != QProcess::NotRunning)
-        process->kill();
+    // wait for process to finish and cmdQueue to be empty
+    while (!process->waitForFinished(60000) && !cmdQueue.isEmpty())
+        continue;
 }
 
 void CloudUploader::checkLoggedIn()
@@ -118,6 +118,8 @@ void CloudUploader::readStandardError()
 void CloudUploader::stopCmd()
 {
     qDebug() << "Command timeout. Killing " << SignUpInfo:: quoteWrap(currentCmd);
+    QString msg = "xx Timeout. Killing current command. xx";
+    emit commadOutputReceived(msg);
     if (process->state() != QProcess::NotRunning)
     {
         process->kill();
@@ -141,6 +143,12 @@ QString CloudUploader::getLog() const
     return log;
 }
 
+int CloudUploader::getCmdQueueSize() const
+{
+    return cmdQueue.size();
+}
+
+
 QString CloudUploader::getErrorMsg() const
 {
     return errorMsg;
@@ -153,19 +161,21 @@ QString CloudUploader::getEmail() const
 
 void CloudUploader::onCommandFinished(int exitCode, QProcess::ExitStatus exitStatus)
 {
-//    // check exit of last command
-//    if (currentCmd == "")
-//        loggedIn = exitCode == 0 && exitStatus == QProcess::ExitStatus::NormalExit;
-//    else if (loginRegex.match(currentCmd).hasMatch())
-//    {
-//        loggedIn = exitCode == 0 && exitStatus == QProcess::ExitStatus::NormalExit;
-//        // TODO: give login feedback
-//    }
+    QString msg = "Exit code: " + QString::number(exitCode);
+    if (exitCode != 0)
+        msg = "Command finished with error!";
+    else
+        msg = "Command finished successfully!";
+
+    emit commandExecuted(msg);
     qDebug() << "Exit code: " << exitCode;
 
     // stop timeout timer
     if (timeoutTimer->isActive())
         timeoutTimer->stop();
+    QEventLoop loop;
+    QTimer::singleShot(3000, &loop, SLOT(quit()));
+    loop.exec();
 
     // start next command
     if (!cmdQueue.isEmpty())

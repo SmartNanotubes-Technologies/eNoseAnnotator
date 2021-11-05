@@ -141,13 +141,29 @@ void LoginDialog::manualUpload(QStringList &files)
         return;
 
     setCursorWaiting(true);
+    loginActivePage->setUILocked(true);
 
     for (QString file : files)
     {
         uploader->syncFile(file);
     }
+
+    int queueSize = uploader->getCmdQueueSize();
+    while(queueSize > 0)
+    {
+        loginActivePage->setFeedbackLabel(tr("Uploading selected files (%1 / %2).").arg(files.size()-queueSize).arg(files.size()));
+        QEventLoop loop;
+        QTimer::singleShot(1000, &loop, SLOT(quit()));
+        loop.exec();
+
+        queueSize = uploader->getCmdQueueSize();
+    }
+
+    loginActivePage->setFeedbackLabel("Upload finished");
     setCursorWaiting(false);
-    loginActivePage->setFeedbackLabel("Marked " + QString::number(files.size()) + " to be uploaded.");
+    loginActivePage->setUILocked(false);
+
+
 }
 
 void LoginDialog::tryLogin(QString username, QString password)
@@ -185,6 +201,7 @@ void LoginDialog::tryLogout()
     if (success)
     {
         stackedWidget->setCurrentWidget(loginPage);
+        loginActivePage->clear();
     }
     else
     {
@@ -680,6 +697,11 @@ void LoginActiveWidget::setUILocked(bool value)
 {
     logoutButton->setEnabled(!value);
     uploadButton->setEnabled(!value);
+}
+
+void LoginActiveWidget::clear()
+{
+    feedbackLabel->clear();
 }
 
 void LoginActiveWidget::logout()

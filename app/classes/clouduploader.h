@@ -57,6 +57,8 @@ public:
 
     QString getLog() const;
 
+    int getCmdQueueSize() const;
+
 signals:
     void commandExecuted(QString &msg);
     void commadOutputReceived(QString &msg);

@@ -109,6 +109,7 @@ public slots:
     void setFeedbackLabel(QString msg);
     void setEmail(QString email);
     void setUILocked(bool);
+    void clear();
 
 private slots:
     void logout();
