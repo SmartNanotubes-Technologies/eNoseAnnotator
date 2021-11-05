@@ -91,7 +91,7 @@ void CloudUploader::readStandardOutput()
     QString standardOutput = process->readAllStandardOutput();
 
     cmdOutput += standardOutput;
-    QString msg = "->" + cmdOutput;
+    QString msg = "->" + standardOutput;
     qDebug() << msg;
     log += msg;
     emit commadOutputReceived(msg);
