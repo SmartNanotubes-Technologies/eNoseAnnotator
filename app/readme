@@ -1,15 +1,1 @@
-// TODO
-// important
 
-// optional
-- start/ stop measurement based on gradient, ui symbols for status
-
-// features
-- firmware update for the smell inspector via python scripts
-- implement new communication protocol, add control features for fan
-- add graphs for additional sensor date (temperature, humidity, etc)
-
-// bugs
-
-// ci
-- move to github actions
