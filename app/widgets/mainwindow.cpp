@@ -322,14 +322,34 @@ void MainWindow::on_actionAbout_triggered()
 {
     std::stringstream ss;
     QString gitCommit(GIT_VERSION); // git has to be on path in order to be set!
-    ss << "<a href='https://github.com/Tilagiho/eNoseAnnotator'>eNoseAnnotator</a> Version: " << gitCommit.toStdString() << "<br><br>Compiled with QT Version " << QT_VERSION_STR << "<br>Graphs made using <a href='https://www.qcustomplot.com/'>QCustomPlot</a><br><br>";
+    ss << "<a href='https://github.com/Tilagiho/eNoseAnnotator'>eNoseAnnotator</a> Version: " << gitCommit.toStdString() << "<br><br>Compiled with QT Version " << QT_VERSION_STR << "<br>The eNoseAnnotator is based in part on the work of the Qwt project (http://qwt.sf.net).<br><br>";
     QString appCredits = ss.str().c_str();
-    QString iconCredits = "Application Icon made by: Timo Land<br>USB icons from <a href='https://www.icons8.de'>Icons8</a><br>All other icons made by <a href='https://smashicons.com'>SmashIcons</a> from <a href='https://www.flaticon.com'>www.flaticon.com</a>";
+
+    QString thirdPartyLicenses =
+            "<h2>Third party software:</h2>"
+            " <ul>"
+            "The Software eNoseAnnotator uses the following third party software:"
+            "<li>Qt: <a href>https://doc.qt.io/qt-5/lgpl.html</a></li>"
+            "<li>Qwt: <a href>https://qwt.sourceforge.io/qwtlicense.html</a></li>"
+            "<li>Google Breakpad: <a href>https://chromium.googlesource.com/breakpad/breakpad/+/master/LICENSE</a></li>"
+            "<li>torchlib: <a href>https://github.com/pytorch/pytorch/blob/master/LICENSE</a></li>"
+            "<li>dlib: <a href>http://dlib.net/license.html</a></li>"
+            "<li>dotnet: <a href>https://github.com/microsoft/dotnet/blob/master/LICENSE</a></li>"
+            "<li>Realm: <a href>https://licenses.nuget.org/Apache-2.0</a></li>"
+            "<li>CommandLineParser: <a href>https://www.nuget.org/packages/CommandLineParser/2.8.0/License</a></li>"
+            "<li>Nito.AsyncEx: <a href>https://licenses.nuget.org/MIT</a></li>"
+            " </ul>";
+
+    QString iconCredits =
+            "<h2>Icons</h2>"
+            "Application Icon made by: Timo Land<br>USB icons from <a href='https://www.icons8.de'>Icons8</a><br>"
+            "All other icons made by <a href='https://smashicons.com'>SmashIcons</a> from <a href='https://www.flaticon.com'>www.flaticon.com</a>";
+
 
     QMessageBox msgBox(this);
     msgBox.setWindowTitle("About eNoseAnnotator");
     msgBox.setTextFormat(Qt::RichText);   //this is what makes the links clickable
-    msgBox.setText(appCredits + iconCredits);
+    msgBox.setText(appCredits + thirdPartyLicenses + iconCredits);
     msgBox.exec();
 }
 
