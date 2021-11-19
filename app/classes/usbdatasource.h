@@ -71,6 +71,11 @@ private:
     void makeConnections();
     void closeConnections();
 
+    bool isMeasValLine(QString &line);
+    bool isFanLine(QString &line);
+    bool isEventLine(QString &line);
+
+
     AbsoluteMVector getVector(QStringList, QMap<QString, double> parameterMap);
 
     QSerialPort *serial = nullptr;
@@ -81,6 +86,7 @@ private:
 
     bool emitData;
     int deviceInfoRequests = 0;
+    int count = 0;
 };
 
 #endif // USBDATASOURCE_H

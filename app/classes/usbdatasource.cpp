@@ -208,12 +208,32 @@ void USBDataSource::processLine(const QByteArray &data)
     timer->start(timeout*1000);
 
 //    qDebug() << line;
-    if (line.startsWith("count"))
+
+    if (isMeasValLine(line))
         processMeasValLine(line);
-    else if (line.startsWith("fan"))
-        processMeasValLine(line);
-    else if (line.startsWith("event"))
+    else if (isFanLine(line))
+        processFanLine(line);
+    else if (isEventLine(line))
         processEventLine(line);
+
+}
+
+bool USBDataSource::isMeasValLine(QString &line)
+{
+    if (settings.firmwareVersion < "2")
+        return line.startsWith("count") || line.startsWith("start;") ;
+    else
+        return line.startsWith("start;");
+}
+
+bool USBDataSource::isFanLine(QString &line)
+{
+    return line.startsWith("fan");
+}
+
+bool USBDataSource::isEventLine(QString &line)
+{
+    return line.startsWith("event");
 }
 
 void USBDataSource::processMeasValLine(QString &line)
@@ -223,35 +243,55 @@ void USBDataSource::processMeasValLine(QString &line)
 
     uint timestamp = QDateTime::currentDateTime().toTime_t();
 
-//        qDebug() << timestamp << ": Received new vector";
-
-    // line looks like: count=___,var1=____,var2=____,...,var64=____[,sensorAttribute=____]*
-    QStringList dataList = line.split(',');
     QStringList valueList;
     QMap<QString, double> parameterMap;
+    count ++;
 
-    int count = 0;
-    for (auto element : dataList)
+//        qDebug() << timestamp << ": Received new vector";
+
+    if (settings.firmwareVersion < "2" && line.startsWith("count"))
     {
-        if (element.startsWith("count"))
-        {
-            count = element.split('=')[1].toInt();
-        }
-        else if (element.startsWith("var"))
-        {
-            valueList << element.split('=')[1];
-        }
-        else
-        {
-            QStringList vals = element.split('=');
-            QString parameterName = vals[0];
+        // line looks like: count=___,var1=____,var2=____,...,var64=____[,sensorAttribute=____]*
+        QStringList dataList = line.split(',');
 
-            if (parameterName == "humidity")
-                parameterName += "[%]";
-            else if (parameterName == "temperature")
-                parameterName += "[°C]";
+        for (auto element : dataList)
+        {
+            if (element.startsWith("count"))
+            {
+                continue;
+            }
+            else if (element.startsWith("var"))
+            {
+                valueList << element.split('=')[1];
+            }
+            else
+            {
+                QStringList vals = element.split('=');
+                QString parameterName = vals[0];
 
-            parameterMap[parameterName] = vals[1].toDouble();
+                if (parameterName == "humidity")
+                    parameterName += "[%]";
+                else if (parameterName == "temperature")
+                    parameterName += "[°C]";
+
+                parameterMap[parameterName] = vals[1].toDouble();
+            }
+        }
+    }
+    else    // firmware version >= 2
+    {
+        // line looks like: start;___,____,____,...,____[,____]*
+        QStringList dataList = line.split(';');
+
+        for (int i=1; i<dataList.size(); i++)
+        {
+            auto element = dataList[i];
+            if (i < dataList.size() - 2)
+                valueList << element;
+            else if (i == dataList.size() - 1)
+                parameterMap["humidity[%]"] = element.toDouble();
+            else
+                parameterMap["temperature[°C]"] = element.toDouble();
         }
     }
 
@@ -281,8 +321,6 @@ void USBDataSource::processMeasValLine(QString &line)
         vector.userAnnotation = Annotation({measEventClass});
     }
 
-//        qDebug() << vector.toString();
-
     if (startCount == 0)    // first count
     {
         // reset baselevel vector
@@ -292,10 +330,10 @@ void USBDataSource::processMeasValLine(QString &line)
         startCount = count;
         baselevelVectorMap[timestamp] = vector;
     }
-    else if (status() == Status::SET_BASEVECTOR && count < startCount + nBaseVectors -1) // prepare baselevel
+    if (status() == Status::SET_BASEVECTOR && count < startCount + nBaseVectors) // prepare baselevel
     {
         baselevelVectorMap[timestamp] = vector;
-    } else if (status() == Status::SET_BASEVECTOR && count == startCount + nBaseVectors -1) // set baselevel
+    } else if (status() == Status::SET_BASEVECTOR && count == startCount + nBaseVectors) // set baselevel
     {
         baselevelVectorMap[timestamp] = vector;
 
@@ -306,18 +344,12 @@ void USBDataSource::processMeasValLine(QString &line)
 
         // set base vector
         emit baseVectorSet(baselevelVectorMap.firstKey(), baselevelVector);
-
-        // add data
-//            for (uint ts : baselevelVectorMap.keys())
-//                emit vectorReceived(ts, baselevelVectorMap[ts]);
-
     }
     else // get vector & emit
     {
         if (connectionStatus != Status::RECEIVING_DATA)
             setStatus (Status::RECEIVING_DATA);
 
-//            qDebug() << "Vector Received: \n" << vector.toString();
         emit vectorReceived(timestamp, vector);
     }
 }
@@ -407,7 +439,7 @@ void USBDataSource::start()
 }
 
 /*!
- * triggered to pause emition of measurements
+ * triggered to pause emition of measurementsgitk
  */
 void USBDataSource::pause()
 {
