@@ -1014,7 +1014,12 @@ void Controler::loadClassifier()
     // load new classifier
     bool loadOk;
     QString errorString;
-    classifier = new TorchClassifier(this, filename, &loadOk, &errorString);
+
+    auto functionalisation = mData->getFunctionalisation();
+    auto sensorFailures = mData->getSensorFailures();
+    auto funcMap = functionalisation.getFuncMap(sensorFailures);
+
+    classifier = new TorchClassifier(this, filename, &loadOk, &errorString, funcMap.size());
 
     // loading classifier failed
     if (!loadOk)
@@ -1040,9 +1045,6 @@ void Controler::loadClassifier()
     mData->setDataChanged(prevChanged);
 
     // check classifier func and the functionalisation set
-    auto functionalisation = mData->getFunctionalisation();
-    auto sensorFailures = mData->getSensorFailures();
-    auto funcMap = functionalisation.getFuncMap(sensorFailures);
     if (classifier->getN() != funcMap.size() || classifier->getPresetName() != mData->getFunctionalisation().getName())
     {
         QString error_message = "Functionalisation of the data loaded seems to be incompatible with the loaded classifier.\nWas the functionalisation set correctly? Is the classifier compatible with the sensor used?";

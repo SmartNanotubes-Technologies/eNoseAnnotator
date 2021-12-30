@@ -152,7 +152,7 @@ at::Tensor TorchClassifier::forward(std::vector<double> rawInput)
     for (double value : rawInput)
         floatVector.push_back(static_cast<float>(value));
     // Create a vector of inputs.
-    torch::Tensor inputTensor = at::from_blob(floatVector.data(), {1, 8});
+    torch::Tensor inputTensor = at::from_blob(floatVector.data(), {1, N});
 
 //    std::cout << "Called forward with input: " << inputTensor.slice(1,0,8);
     std::vector<torch::jit::IValue> inputs;
