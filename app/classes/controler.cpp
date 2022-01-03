@@ -95,6 +95,8 @@ Controler::Controler(QObject *parent) :
     connect(mData, &MeasurementData::selectionVectorChanged, w, &MainWindow::setSelectionVector);
     connect(mData, &MeasurementData::selectionCleared, w, &MainWindow::clearSelectionVector);
 
+
+
     // info widget connections:
     connect(w, &MainWindow::sensorFailureDialogRequested, [this](){
         auto sensorFailures = mData->getSensorFailures();
@@ -139,6 +141,16 @@ Controler::Controler(QObject *parent) :
     connect(w, &MainWindow::classifyMeasurementRequested, this, &Controler::classifyMeasurement);
 
     connect(w, &MainWindow::fitCurvesRequested, this, &Controler::fitCurves);
+
+    // classifier widget
+    connect(mData, &MeasurementData::selectionVectorChanged, this, [=](const AbsoluteMVector &vector, const MVector &stdDevVector, const std::vector<bool> &sensorFailures, const Functionalisation &functionalisation){
+        classifyVector(vector);
+    });
+    connect(mData, &MeasurementData::vectorAdded, this, [=](uint timestamp, AbsoluteMVector vector, Functionalisation functionalisation , std::vector<bool> sensorFailures, bool yRescale){
+        if (w->isLiveClassification() && source->measIsRunning() && mData->getSelectionMap().size() == 0)
+            classifyVector(vector);
+    });
+    connect(w, &MainWindow::selectionCleared, w, &MainWindow::clearClassifierWidgetAnnotation);
 
     // login dialog
     connect(w, &MainWindow::loginDialogRequested, this, [=](){
@@ -1090,6 +1102,28 @@ void Controler::classifyMeasurement()
             }
 
             break;
+        }
+    }
+}
+
+void Controler::classifyVector(AbsoluteMVector vector)
+{
+    if (classifier == nullptr)
+        return;
+
+    MVector inputVector = classifier->getIsInputAbsolute() ? static_cast<MVector>(vector) : static_cast<MVector>(vector.getRelativeVector());
+    auto funcVector = vector.getFuncVector(mData->getFunctionalisation(), mData->getSensorFailures(), classifier->getInputFunctionType());
+
+    try {
+        Annotation annotation = classifier->getAnnotation(funcVector.getVector());
+        w->setClassifierWidgetAnnotation(annotation);
+    } catch (std::invalid_argument& e) {
+        QString error_message = e.what() + QString("\nDo you want to close the classifier?");
+
+        QMessageBox::StandardButton answer = QMessageBox::question(w, "Classifier error", error_message);
+        if (answer == QMessageBox::StandardButton::Yes)
+        {
+            closeClassifier();
         }
     }
 }

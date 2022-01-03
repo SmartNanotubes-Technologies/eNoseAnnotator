@@ -129,6 +129,8 @@ private slots:
 
     void classifyMeasurement();
 
+    void classifyVector(AbsoluteMVector vector);
+
     void updateAutosave();
 
     void fitCurves();

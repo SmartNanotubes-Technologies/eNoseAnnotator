@@ -29,6 +29,8 @@ public:
 
     bool isConverterRunning() const;
 
+    bool isLiveClassification() const;
+
 signals:
     void setConnectionRequested();
     void flashFirmwareRequested();
@@ -109,6 +111,10 @@ public slots:
     void showLoginDialog(CloudUploader *uploader);
 
     void setSelectionActionsEnabled(bool selectionMade);
+
+    void setClassifierWidgetAnnotation(Annotation annotation);
+
+    void clearClassifierWidgetAnnotation();
 
 
 private slots:

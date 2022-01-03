@@ -91,6 +91,7 @@ void MainWindow::addVector(uint timestamp, AbsoluteMVector absoluteVector, const
     funcLineGraph->addVector(timestamp, funcVector, functionalisation, sensorFailures);
 
     parameterLineGraph->addVector(timestamp, absoluteVector, functionalisation, sensorFailures);
+
 }
 
 void MainWindow::setData(const QMap<uint, AbsoluteMVector> &data, const Functionalisation &functionalisation, const std::vector<bool> &sensorFailures)
@@ -404,6 +405,16 @@ void MainWindow::setSelectionActionsEnabled(bool selectionMade)
     ui->actionFit_curve->setEnabled(selectionMade);
 }
 
+void MainWindow::setClassifierWidgetAnnotation(Annotation annotation)
+{
+    classifierWidget->setAnnotation(annotation);
+}
+
+void MainWindow::clearClassifierWidgetAnnotation()
+{
+    classifierWidget->clearAnnotation();
+}
+
 void MainWindow::saveLineGraphImage(LineGraphWidget *graph)
 {
     QSettings settings(QCoreApplication::organizationName(), QCoreApplication::applicationName());
@@ -475,6 +486,11 @@ void MainWindow::saveBarGraphSelectionVector(bool saveFunc)
 bool MainWindow::isConverterRunning() const
 {
     return converterRunning;
+}
+
+bool MainWindow::isLiveClassification() const
+{
+    return ui->actionLive_classifcation->isChecked();
 }
 
 void MainWindow::setFunctionalisation(const QMap<uint, AbsoluteMVector> &data, Functionalisation &functionalisation, std::vector<bool> &sensorFailures)
