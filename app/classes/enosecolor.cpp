@@ -84,7 +84,7 @@ QColor ENoseColor::getClassColor(int i, int size)
     if (size < bigColorList.size())
         return bigColorList[i];
     else
-        return getFuncColor(i);
+        return getIColor(i, size);
 }
 
 void ENoseColor::setSensorFailures(const std::vector<bool> &value)
