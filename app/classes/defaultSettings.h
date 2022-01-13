@@ -54,7 +54,7 @@
 #define DEVICE_TIMEOUT 6
 
 // uploader
-#define UPLOADER_CMD_TIMEOUT 90000
+#define UPLOADER_CMD_TIMEOUT 90*1000
 #define UPLOADER_CMD_SYNC_PERIOD 2*60000
 #define INDUSTRY_SELECTION_TEXT "Please select"
 #define SHOW_UPLOAD_FEATURE_KEY "settings/show_upload"

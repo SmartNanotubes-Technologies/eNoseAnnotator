@@ -639,10 +639,15 @@ void Controler::parseArguments()
 
 void Controler::setRunningAutoSave(bool enabled)
 {
+    runningAutoSaveEnabled = enabled;
+
     if (enabled && !runningAutoSaveTimer.isActive())
         runningAutoSaveTimer.start(static_cast<int>(runningAutoSaveInterval * 60 * 1000));
     else if (!enabled && runningAutoSaveTimer.isActive())
         runningAutoSaveTimer.stop();
+
+     QSettings settings(QCoreApplication::organizationName(), QCoreApplication::applicationName());
+     settings.setValue(RUN_AUTO_SAVE_KEY, enabled);
 }
 
 void Controler::setRunningAutoSave(uint minutes)
@@ -654,6 +659,9 @@ void Controler::setRunningAutoSave(uint minutes)
         runningAutoSaveTimer.stop();
         runningAutoSaveTimer.start(static_cast<int>(runningAutoSaveInterval * 60 * 1000));
     }
+
+    QSettings settings(QCoreApplication::organizationName(), QCoreApplication::applicationName());
+    settings.setValue(RUN_AUTO_SAVE_INTERVAL_KEY, minutes);
 }
 
 void Controler::saveSelection()
