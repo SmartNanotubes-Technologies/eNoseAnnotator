@@ -165,6 +165,14 @@ Controler::Controler(QObject *parent) :
     autosaveTimer.setSingleShot(false);
     autosaveTimer.start(static_cast<int>(autosaveIntervall * 60 * 1000));
 
+    connect(&runningAutoSaveTimer, &QTimer::timeout, this, &Controler::autosaveData);
+    runningAutoSaveTimer.setSingleShot(false);
+
+    QSettings settings(QCoreApplication::organizationName(), QCoreApplication::applicationName());
+    runningAutoSaveEnabled = settings.value(RUN_AUTO_SAVE_KEY, DEFAULT_RUN_AUTO_SAVE).toBool();
+    runningAutoSaveInterval = settings.value(RUN_AUTO_SAVE_INTERVAL_KEY, DEFAULT_RUN_AUTO_SAVE_INTERVAL).toUInt();
+    setRunningAutoSave(runningAutoSaveEnabled);
+
     QTimer::singleShot(20, this, &Controler::loadSettings);
 }
 
@@ -361,6 +369,8 @@ void Controler::setGeneralSettings()
     dialog.setMinVal(lowerLimit);   // min value for absolute values
     dialog.setUseLimits(useLimits);
     dialog.setPresetDir(presetDir);
+    dialog.setRunAutoSaveEnabled(runningAutoSaveEnabled);
+    dialog.setRunAutoSaveInterval(runningAutoSaveInterval);
 
     if (dialog.exec())
     {
@@ -397,8 +407,24 @@ void Controler::setGeneralSettings()
             }
         }
 
+        // --- auto save ---
+        bool newRunningAutoSaveEnabled = dialog.getRunAutoSaveEnabled();
+        uint newRunningAutoSaveInterval = dialog.getRunAutoSaveInterval();
+
+        if (newRunningAutoSaveInterval != runningAutoSaveInterval)
+            setRunningAutoSave(newRunningAutoSaveInterval);
+
+        if (newRunningAutoSaveEnabled != runningAutoSaveEnabled)
+            setRunningAutoSave(newRunningAutoSaveEnabled);
+
         // qDebug() << "Keys after general settings dialog:\n"  << settings.allKeys().join("; ");
     }
+}
+
+void Controler::autosaveData()
+{
+    if (source->measIsRunning())
+        saveData();
 }
 
 void Controler::saveData()
@@ -609,6 +635,25 @@ void Controler::parseArguments()
 
 //    QString filename = "/home/pingu/eNose-ml-engine/data/eNose-base-dataset/train/5_Ammoniak_200206.csv";
     qDebug().noquote() << parseResult.toString();
+}
+
+void Controler::setRunningAutoSave(bool enabled)
+{
+    if (enabled && !runningAutoSaveTimer.isActive())
+        runningAutoSaveTimer.start(static_cast<int>(runningAutoSaveInterval * 60 * 1000));
+    else if (!enabled && runningAutoSaveTimer.isActive())
+        runningAutoSaveTimer.stop();
+}
+
+void Controler::setRunningAutoSave(uint minutes)
+{
+    runningAutoSaveInterval = minutes;
+
+    if (runningAutoSaveTimer.isActive())
+    {
+        runningAutoSaveTimer.stop();
+        runningAutoSaveTimer.start(static_cast<int>(runningAutoSaveInterval * 60 * 1000));
+    }
 }
 
 void Controler::saveSelection()

@@ -58,6 +58,7 @@ public slots:
     void initSettings();
     void saveClassList();
 
+    void autosaveData();
     void saveData();
     void saveData(bool forceDialog);
     void saveAsLabviewFile();
@@ -68,13 +69,18 @@ public slots:
 
     void parseArguments();
 
+    void setRunningAutoSave(bool enabled);
+    void setRunningAutoSave(uint minutes);
+
 private:
     MainWindow* w;
 
     QString autosaveName = "autosave.csv";
     QString autosavePath;
     uint autosaveIntervall = 1;             // in minutes
-    QTimer autosaveTimer;
+    QTimer autosaveTimer, runningAutoSaveTimer;
+    uint runningAutoSaveInterval = 5;
+    bool runningAutoSaveEnabled = false;
 
     MeasurementData *mData = nullptr;
     DataSource *source = nullptr;

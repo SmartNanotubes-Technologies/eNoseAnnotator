@@ -54,17 +54,23 @@
 #define DEVICE_TIMEOUT 6
 
 // uploader
-#define UPLOADER_CMD_TIMEOUT 30000
+#define UPLOADER_CMD_TIMEOUT 90000
 #define UPLOADER_CMD_SYNC_PERIOD 2*60000
 #define INDUSTRY_SELECTION_TEXT "Please select"
 #define SHOW_UPLOAD_FEATURE_KEY "settings/show_upload"
-#define SHOW_UPLOAD_FEATURE_DEFAULT false
+#define SHOW_UPLOAD_FEATURE_DEFAULT true
 #define SHOW_UPLOAD_LOG_KEY "settings/show_upload_log"
-#define SHOW_UPLOAD_LOG_DEFAULT false
+#define SHOW_UPLOAD_LOG_DEFAULT true
 
 // smell annotations
 #define SMELL_LIST_KEY "settings/smells"
 #define DEFAULT_SMELL_LIST "No Smell"
 #define SMELL_SEPARATOR ";"
+
+// running meas autosave
+#define RUN_AUTO_SAVE_KEY "settings/run_auto_save_key"
+#define DEFAULT_RUN_AUTO_SAVE false
+#define RUN_AUTO_SAVE_INTERVAL_KEY "settings/run_auto_save_interval"
+#define DEFAULT_RUN_AUTO_SAVE_INTERVAL 5
 
 #endif // DEFAULTVALUES_H

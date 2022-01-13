@@ -12,6 +12,7 @@ GeneralSettingsDialog::GeneralSettingsDialog(QWidget *parent) :
     ui->setupUi(this);
     this->setWindowTitle("Settings");
 
+    connect(ui->save_checkbox, &QCheckBox::stateChanged, this, &GeneralSettingsDialog::onSaveCheckboxStateChanged);
 }
 
 GeneralSettingsDialog::~GeneralSettingsDialog()
@@ -79,6 +80,41 @@ void GeneralSettingsDialog::setPresetDir(QString presetDirPath)
 {
     QFileInfo presetDir(presetDirPath);
     ui->presetDirlineEdit->setText(presetDir.absolutePath());
+}
+
+bool GeneralSettingsDialog::getRunAutoSaveEnabled() const
+{
+    return ui->save_checkbox->isChecked();
+}
+
+void GeneralSettingsDialog::setRunAutoSaveEnabled(bool enabled)
+{
+    ui->save_checkbox->setChecked(enabled);
+
+    setRunAutoIntervalEnabled(enabled);
+}
+
+void GeneralSettingsDialog::onSaveCheckboxStateChanged(int state)
+{
+    bool enabled = state == Qt::CheckState::Checked;
+    setRunAutoSaveEnabled(enabled);
+}
+
+void GeneralSettingsDialog::setRunAutoIntervalEnabled(bool enabled)
+{
+    ui->save_label_2->setEnabled(enabled);
+    ui->save_SpinBox->setEnabled(enabled);
+    ui->save_label_3->setEnabled(enabled);
+}
+
+uint GeneralSettingsDialog::getRunAutoSaveInterval() const
+{
+    return static_cast<uint>(ui->save_SpinBox->value());
+}
+
+void GeneralSettingsDialog::setRunAutoSaveInterval(uint minutes)
+{
+    ui->save_SpinBox->setValue(minutes);
 }
 
 void GeneralSettingsDialog::on_presetDirPushButton_clicked()

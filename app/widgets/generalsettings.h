@@ -31,6 +31,13 @@ public:
     QString getPresetDir() const;
     void setPresetDir(QString presetDir);
 
+    bool getRunAutoSaveEnabled() const;
+    void setRunAutoSaveEnabled(bool enabled);
+
+    uint getRunAutoSaveInterval() const;
+    void setRunAutoSaveInterval(uint minutes);
+
+
 private slots:
     void on_buttonBox_accepted();
 
@@ -38,6 +45,9 @@ private slots:
     void on_presetDirPushButton_clicked();
 
     void on_defaultPushButton_clicked();
+
+    void onSaveCheckboxStateChanged(int state);
+    void setRunAutoIntervalEnabled(bool enabled);
 
 private:
     Ui::GeneralSettings *ui;
